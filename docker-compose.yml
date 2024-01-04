@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+
+  emailtodb:
+    restart: on-failure
+    build:
+      context: ./
+    ports:
+      - "9091:9091"
+    volumes:
+      - ./:/usr/src/myapp
+    networks:
+      - custom_network
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 3G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    restart: on-failure
+    image: postgres
+    command: [ "postgres", "-c", "port=5431" ]
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: testDB
+    ports:
+      - '5431:5431'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - custom_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U myuser -d testDB -p 5431" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 750M
+        reservations:
+          cpus: '0.5'
+          memory: 500M
+
+volumes:
+  postgres-data:
+
+networks:
+  custom_network:
+    driver: bridge
