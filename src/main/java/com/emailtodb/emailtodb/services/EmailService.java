@@ -11,9 +11,11 @@ import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartHeader;
 import org.apache.commons.codec.binary.Base64;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -34,6 +36,12 @@ public class EmailService {
 
     @Autowired
     private EmailAttachmentRepository emailAttachmentRepository;
+
+    @Autowired
+    private GmailConfig gmailConfig;
+
+    @Value("${gmail.sender.emailFilter}")
+    private String emailFilter;
 
     private static String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
@@ -122,8 +130,8 @@ public class EmailService {
         String userId = "me";
         Optional<EmailMessage> latestEmail = emailMessageRepository.findTopByOrderByDateSentDesc();
 
-        Gmail gmail = GmailConfig.getGmailClientAccount();
-
+        // Gmail gmail = GmailConfig.getGmailClientAccount();
+        Gmail gmail = gmailConfig.getGmailServiceAccount();
         List<Message> newMessages;
 
         if (latestEmail.isPresent()) {
@@ -142,8 +150,12 @@ public class EmailService {
         for (Message message : newMessages) {
 
             EmailMessage emailMessage = extractEmailMessageFromGmailMessage(message);
-            saveEmailMessageIfNotExists(emailMessage);
-            saveEmailAttachmentsIfNotExists(message, emailMessage);
+
+            // Check if the body or the "From" field contains the string "BEEDBVA"
+            if (emailMessage.getBody().contains(emailFilter) || emailMessage.getFrom().contains(emailFilter)) {
+                saveEmailMessageIfNotExists(emailMessage);
+                saveEmailAttachmentsIfNotExists(message, emailMessage);
+            }
         }
 
         logger.info("Conditional fetching and saving emails completed");
@@ -193,7 +205,6 @@ public class EmailService {
         String cc = "";
         String bcc = "";
         Date dateSent = null;
-        String body = "";
 
         // Extract headers for subject, from, to, cc, bcc, and date
         List<MessagePartHeader> headers = message.getPayload().getHeaders();
@@ -227,12 +238,9 @@ public class EmailService {
         }
 
         // Extract the body of the email
-        // Assuming the body is in a text/plain part
-        for (MessagePart part : message.getPayload().getParts()) {
-            if ("text/plain".equals(part.getMimeType())) {
-                body = new String(Base64.decodeBase64(part.getBody().getData()));
-                break;
-            }
+        String body = getBody(message.getPayload());
+        if (body == null) {
+            body = "";
         }
 
         // Setting properties for emailMessage from the extracted message object
@@ -283,4 +291,20 @@ public class EmailService {
         }
         return detailedMessages;
     }
+
+    private String getBody(MessagePart part) {
+        if (part.getMimeType().equals("text/plain") || part.getMimeType().equals("text/html")) {
+            return new String(Base64.decodeBase64(part.getBody().getData()));
+        }
+        if (part.getParts() != null) {
+            for (MessagePart nestedPart : part.getParts()) {
+                String body = getBody(nestedPart);
+                if (body != null) {
+                    return body;
+                }
+            }
+        }
+        return null;
+    }
+
 }

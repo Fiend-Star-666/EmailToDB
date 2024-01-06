@@ -15,7 +15,7 @@ public class EmailMessage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "message_id", nullable = false)
+    @Column(name = "message_id", nullable = false, unique = true)
     private String messageId;
 
     @Column(name = "subject", nullable = false)
