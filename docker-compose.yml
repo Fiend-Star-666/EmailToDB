@@ -12,6 +12,10 @@ services:
       - ./:/usr/src/myapp
     networks:
       - custom_network
+    environment:
+      - dbHost=${DB_HOST}
+      - emailFilter=${EMAIL_FILTER}
+      - emailUser=${EMAIL_USER}
     deploy:
       resources:
         limits:

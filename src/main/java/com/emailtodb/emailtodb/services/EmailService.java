@@ -11,7 +11,6 @@ import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartHeader;
 import org.apache.commons.codec.binary.Base64;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +101,11 @@ public class EmailService {
         try {
             // Define the user (typically 'me' for the authenticated user)
             String user = "me";
+
+            if (service == null) {
+                logger.error("Gmail service is null");
+                return messages;
+            }
 
             // Fetch only a limited number of messages for demonstration; adjust as needed
             ListMessagesResponse messageResponse = service.users().messages().list(user).setMaxResults(10L).execute();

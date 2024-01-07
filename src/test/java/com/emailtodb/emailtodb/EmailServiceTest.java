@@ -1,10 +1,12 @@
 package com.emailtodb.emailtodb;
 
+import com.emailtodb.emailtodb.config.GmailConfig;
 import com.emailtodb.emailtodb.entities.EmailAttachment;
 import com.emailtodb.emailtodb.entities.EmailMessage;
 import com.emailtodb.emailtodb.repositories.EmailAttachmentRepository;
 import com.emailtodb.emailtodb.repositories.EmailMessageRepository;
 import com.emailtodb.emailtodb.services.EmailService;
+import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartBody;
@@ -19,7 +21,6 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 
@@ -28,21 +29,22 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class EmailServiceTest {
 
-    @Mock
-    private EmailMessageRepository emailMessageRepository;
-    @Mock
-    private EmailAttachmentRepository emailAttachmentRepository;
-    @InjectMocks
-    private EmailService emailService;
-
     @Test
     void contextLoads() {
     }
 
+    @Mock
+    private EmailMessageRepository emailMessageRepository;
+    @Mock
+    private EmailAttachmentRepository emailAttachmentRepository;
+    @Mock
+    private GmailConfig gmailConfig;
+    @InjectMocks
+    private EmailService emailService;
+
     @Test
     public void fetchAndSaveEmailsConditionallyTest() throws Exception {
         // Arrange
-        EmailMessage mockEmailMessage = new EmailMessage();
         Message mockMessage = new Message();
 
         //... setup mockMessage and mockPart ...
@@ -52,16 +54,19 @@ public class EmailServiceTest {
         mockPart.setBody(partBody);
         mockMessage.setPayload(new MessagePart().setParts(Collections.singletonList(mockPart)));
 
-        when(emailMessageRepository.findTopByOrderByDateSentDesc()).thenReturn(Optional.of(mockEmailMessage));
-        when(emailMessageRepository.save(any(EmailMessage.class))).thenReturn(new EmailMessage());
-        when(emailAttachmentRepository.save(any(EmailAttachment.class))).thenReturn(new EmailAttachment());
-
         List<Message> messages = new ArrayList<>();
         messages.add(mockMessage); // Add mock message to the list
 
-        // Assuming fetchMessagesSince() and fetchMessages() are made accessible/overridable for testing
-//        when(emailService.fetchMessagesSince(any(Gmail.class), anyString(), any(Date.class))).thenReturn(messages);
-//        when(emailService.fetchMessages(any(Gmail.class))).thenReturn(messages);
+        // Mock the Gmail service
+        Gmail mockGmailService = mock(Gmail.class);
+        Gmail.Users mockUsers = mock(Gmail.Users.class);
+        Gmail.Users.Messages mockMessages = mock(Gmail.Users.Messages.class);
+        Gmail.Users.Messages.List mockList = mock(Gmail.Users.Messages.List.class);
+
+        when(gmailConfig.getGmailServiceAccount()).thenReturn(mockGmailService);
+        when(mockGmailService.users()).thenReturn(mockUsers);
+        when(mockUsers.messages()).thenReturn(mockMessages);
+        when(mockMessages.list(anyString())).thenReturn(mockList);
 
         // Act
         emailService.fetchAndSaveEmailsConditionally();
