@@ -1,9 +1,7 @@
 package com.emailtodb.emailtodb.services;
 
 import com.emailtodb.emailtodb.config.GmailConfig;
-import com.emailtodb.emailtodb.entities.EmailAttachment;
 import com.emailtodb.emailtodb.entities.EmailMessage;
-import com.emailtodb.emailtodb.repositories.EmailAttachmentRepository;
 import com.emailtodb.emailtodb.repositories.EmailMessageRepository;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.ListMessagesResponse;
@@ -18,8 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -33,66 +31,16 @@ public class EmailService {
     @Autowired
     private EmailMessageRepository emailMessageRepository;
 
-    @Autowired
-    private EmailAttachmentRepository emailAttachmentRepository;
 
     @Autowired
     private GmailConfig gmailConfig;
 
+    @Autowired
+    private EmailAttachmentService emailAttachmentService;
+
     @Value("${gmail.sender.emailFilter}")
     private String emailFilter;
 
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
-
-    public List<EmailAttachment> getAttachments(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException {
-
-        logger.info("Getting attachments started");
-        List<EmailAttachment> attachments = new ArrayList<>();
-        MessagePart payload = message.getPayload();
-
-        if (payload.getParts() != null) {
-            for (MessagePart part : payload.getParts()) {
-                if (part.getFilename() != null && part.getBody().getData() != null) {
-                    EmailAttachment attachment = new EmailAttachment();
-                    byte[] fileByteArray = Base64.decodeBase64(part.getBody().getData());
-                    String fileName = part.getFilename();
-                    String fileExtension = "";
-                    int lastDotIndex = fileName.lastIndexOf('.');
-                    if (lastDotIndex > 0 && lastDotIndex < fileName.length() - 1) {
-                        fileExtension = fileName.substring(lastDotIndex + 1);
-                    }
-                    attachment.setFileName(fileName);
-                    attachment.setFileExtension(fileExtension);
-                    attachment.setFileContent(fileByteArray);
-                    attachment.setEmailMessage(emailMessage); // Set the relation to the email message
-
-                    // Generate SHA-256 hash of the file content
-                    MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                    byte[] hash = digest.digest(fileByteArray);
-                    String fileContentHash = bytesToHex(hash);
-
-                    // Check if an attachment with the same file content hash already exists
-                    Optional<EmailAttachment> existingAttachment = emailAttachmentRepository.findByFileContentHash(fileContentHash);
-                    if (existingAttachment.isPresent()) {
-                        // Skip this attachment because it already exists in the database
-                        continue;
-                    }
-
-                    attachment.setFileContentHash(fileContentHash);
-                    attachments.add(attachment);
-                    logger.info("Attachment added");
-                }
-            }
-        }
-        logger.info("Getting attachments completed");
-        return attachments;
-    }
 
     public List<Message> fetchMessages(Gmail service) {
         logger.info("Fetching messages started");
@@ -134,7 +82,6 @@ public class EmailService {
         String userId = "me";
         Optional<EmailMessage> latestEmail = emailMessageRepository.findTopByOrderByDateSentDesc();
 
-        // Gmail gmail = GmailConfig.getGmailClientAccount();
         Gmail gmail = gmailConfig.getGmailServiceAccount();
         List<Message> newMessages;
 
@@ -157,8 +104,7 @@ public class EmailService {
 
             // Check if the body or the "From" field contains the string "BEEDBVA"
             if (emailMessage.getBody().contains(emailFilter) || emailMessage.getFrom().contains(emailFilter)) {
-                saveEmailMessageIfNotExists(emailMessage);
-                saveEmailAttachmentsIfNotExists(message, emailMessage);
+                saveEmailMessageAndItsAttachmentsIfNotExists(message, emailMessage);
             }
         }
 
@@ -166,25 +112,7 @@ public class EmailService {
 
     }
 
-
-    private void saveEmailAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException {
-        List<EmailAttachment> attachments = getAttachments(message, emailMessage);
-
-        logger.info("emailMessage attachments: " + attachments.size());
-
-        for (EmailAttachment attachment : attachments) {
-            Optional<EmailAttachment> existingEmailAttachment = emailAttachmentRepository.findByFileContentHash(attachment.getFileContentHash());
-
-            if (existingEmailAttachment.isPresent()) {
-                logger.info("Email attachment with name " + attachment.getFileName() + " already exists");
-                continue;
-            }
-            emailAttachmentRepository.save(attachment);
-            logger.info("Saved email attachment");
-        }
-    }
-
-    private void saveEmailMessageIfNotExists(EmailMessage emailMessage) {
+    private void saveEmailMessageAndItsAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, UnsupportedEncodingException {
 
         Optional<EmailMessage> existingEmailMessage = emailMessageRepository.findByMessageId(emailMessage.getMessageId());
 
@@ -196,7 +124,9 @@ public class EmailService {
         emailMessageRepository.save(emailMessage);
         logger.info("Saved email message");
 
+        emailAttachmentService.saveEmailAttachmentsIfNotExists(message, emailMessage);
     }
+
 
     private EmailMessage extractEmailMessageFromGmailMessage(Message message) {
 
@@ -256,14 +186,8 @@ public class EmailService {
         emailMessage.setBcc(bcc);
         emailMessage.setDateSent(dateSent);
         emailMessage.setBody(body);
-        logger.info("Extracted email message details");
 
-        // Set seen, answered, deleted, and draft fields
-        List<String> labelIds = message.getLabelIds();
-        emailMessage.setSeen(labelIds.contains("SEEN"));
-        emailMessage.setAnswered(labelIds.contains("ANSWERED"));
-        emailMessage.setDeleted(labelIds.contains("TRASH"));
-        emailMessage.setDraft(labelIds.contains("DRAFT"));
+        logger.info("Extracted email message details");
 
         return emailMessage;
     }

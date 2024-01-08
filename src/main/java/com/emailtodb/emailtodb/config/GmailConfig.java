@@ -56,7 +56,7 @@ public class GmailConfig {
         // Load credentials from the client_secret.json file
         GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(GmailConfig.class.getResourceAsStream(SERVICE_SECRET_FILE)))
                 //.createScoped(GmailScopes.all())
-                .createScoped(GmailScopes.MAIL_GOOGLE_COM)
+                .createScoped(GmailScopes.GMAIL_READONLY)
                 .createDelegated(this.userEmail); // replace with the user you want to impersonate;
 
         return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpCredentialsAdapter(credentials))

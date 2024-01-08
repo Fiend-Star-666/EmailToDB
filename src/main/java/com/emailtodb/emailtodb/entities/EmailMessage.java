@@ -33,20 +33,8 @@ public class EmailMessage {
     @Column(name = "bcc")
     private String bcc;
 
-    @Column(name = "date_sent", nullable = false)
+    @Column(name = "date_recieved", nullable = false)
     private Date dateSent;
-
-    @Column(name = "seen")
-    private Boolean seen;
-
-    @Column(name = "answered")
-    private Boolean answered;
-
-    @Column(name = "deleted")
-    private Boolean deleted;
-
-    @Column(name = "draft")
-    private Boolean draft;
 
     @Column(name = "body", nullable = false, columnDefinition = "text")
     private String body;

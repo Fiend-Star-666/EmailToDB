@@ -13,7 +13,7 @@ public class EmailAttachment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn( name = "email_message_id", nullable = false)
+    @JoinColumn(name = "email_message_id", nullable = false)
     private EmailMessage emailMessage;
 
     @Column(name = "file_name", nullable = false)
@@ -26,6 +26,6 @@ public class EmailAttachment {
     @Column(name = "file_content", nullable = false)
     private byte[] fileContent;
 
-    @Column(name = "file_content_hash")
+    @Column(name = "file_content_hash", nullable = false)
     private String fileContentHash;
 }
