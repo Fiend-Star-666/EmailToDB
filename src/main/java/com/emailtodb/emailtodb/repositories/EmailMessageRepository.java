@@ -10,5 +10,4 @@ public interface EmailMessageRepository extends JpaRepository<EmailMessage, Long
 
     Optional<EmailMessage> findByMessageId(String id);
 
-    //Optional<List<EmailMessage>> findByDraft(boolean b);
 }

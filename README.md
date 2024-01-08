@@ -11,8 +11,6 @@ tirelessly behind the scenes.
   beat.
 - **Comprehensive Storage Solution**: Not just emails, but their attachments are securely stored in PostgreSQL, offering
   a complete data preservation experience.
-- **Draft Email Dynamics**: Intelligent monitoring and management of draft emails, including a keen eye for discarded
-  drafts.
 - **Duplicate Deterrence**: Employs a sophisticated system to identify and avoid redundancy, using unique email IDs and
   SHA-256 hashes.
 
