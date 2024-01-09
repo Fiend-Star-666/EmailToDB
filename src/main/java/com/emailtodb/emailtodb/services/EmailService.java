@@ -41,6 +41,50 @@ public class EmailService {
     @Value("${gmail.sender.emailFilter}")
     private String emailFilter;
 
+    public void fetchAndSaveEmailsConditionally() throws IOException, GeneralSecurityException {
+
+        logger.info("Conditionally fetching and saving emails started");
+
+        //In the context of the Gmail API, "me" is an alias for the authenticated user who is making the request
+        String userId = "me";
+
+        Optional<EmailMessage> latestEmail = emailMessageRepository.findTopByOrderByDateReceivedDesc();
+
+        Gmail gmail = gmailConfig.getGmailServiceAccount();
+
+        List<Message> newMessages = new ArrayList<>();
+
+        if (latestEmail.isPresent()) {
+
+            Date sinceDate = latestEmail.get().getDateReceived();
+
+            if (sinceDate != null) {
+                newMessages = fetchMessagesSince(gmail, userId, sinceDate);
+            }
+        } else {
+            newMessages = fetchMessages(gmail);
+        }
+
+        logger.info("Fetched " + newMessages.size() + " new messages");
+
+        if(newMessages.isEmpty()) {
+            logger.info("No new messages");
+            return;
+        }
+
+        for (Message message : newMessages) {
+
+            EmailMessage emailMessage = extractEmailMessageFromGmailMessage(message);
+
+            // Check if the "body" or the "From" field contains the string emailFilter
+            if (emailMessage.getBody().contains(emailFilter) || emailMessage.getFrom().contains(emailFilter)) {
+                saveEmailMessageAndItsAttachmentsIfNotExists(message, emailMessage);
+            }
+        }
+
+        logger.info("Conditional fetching and saving emails completed");
+
+    }
 
     public List<Message> fetchMessages(Gmail service) {
         logger.info("Fetching messages started");
@@ -55,8 +99,8 @@ public class EmailService {
                 return messages;
             }
 
-            // Fetch only a limited number of messages for demonstration; adjust as needed
-            ListMessagesResponse messageResponse = service.users().messages().list(user).setMaxResults(10L).execute();
+            ListMessagesResponse messageResponse = service.users().messages().list(user).execute();
+
             List<Message> messageIds = messageResponse.getMessages();
 
             if (messageIds != null) {
@@ -75,44 +119,9 @@ public class EmailService {
         return messages;
     }
 
-    public void fetchAndSaveEmailsConditionally() throws IOException, GeneralSecurityException {
 
-        logger.info("Conditionally fetching and saving emails started");
 
-        String userId = "me";
-        Optional<EmailMessage> latestEmail = emailMessageRepository.findTopByOrderByDateSentDesc();
-
-        Gmail gmail = gmailConfig.getGmailServiceAccount();
-        List<Message> newMessages;
-
-        if (latestEmail.isPresent()) {
-            Date sinceDate = latestEmail.get().getDateSent();
-
-            if (sinceDate != null) {
-                newMessages = fetchMessagesSince(gmail, userId, sinceDate);
-            } else {
-                newMessages = fetchMessages(gmail);
-            }
-        } else {
-            newMessages = fetchMessages(gmail);
-        }
-        logger.info("Fetched " + newMessages.size() + " new messages");
-
-        for (Message message : newMessages) {
-
-            EmailMessage emailMessage = extractEmailMessageFromGmailMessage(message);
-
-            // Check if the body or the "From" field contains the string "BEEDBVA"
-            if (emailMessage.getBody().contains(emailFilter) || emailMessage.getFrom().contains(emailFilter)) {
-                saveEmailMessageAndItsAttachmentsIfNotExists(message, emailMessage);
-            }
-        }
-
-        logger.info("Conditional fetching and saving emails completed");
-
-    }
-
-    private void saveEmailMessageAndItsAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    private void saveEmailMessageAndItsAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
 
         Optional<EmailMessage> existingEmailMessage = emailMessageRepository.findByMessageId(emailMessage.getMessageId());
 
@@ -184,7 +193,7 @@ public class EmailService {
         emailMessage.setTo(to);
         emailMessage.setCc(cc);
         emailMessage.setBcc(bcc);
-        emailMessage.setDateSent(dateSent);
+        emailMessage.setDateReceived(dateSent);
         emailMessage.setBody(body);
 
         logger.info("Extracted email message details");
@@ -193,7 +202,9 @@ public class EmailService {
     }
 
     public List<Message> fetchMessagesSince(Gmail service, String userId, Date sinceDate) throws IOException {
+        
         logger.info("Fetching messages since " + sinceDate);
+        
         SimpleDateFormat gmailDateFormat = new SimpleDateFormat("yyyy/MM/dd");
         gmailDateFormat.setTimeZone(TimeZone.getTimeZone("GMT")); // Gmail uses GMT
 

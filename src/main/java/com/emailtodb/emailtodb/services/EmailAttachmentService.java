@@ -1,17 +1,20 @@
 package com.emailtodb.emailtodb.services;
 
+import com.emailtodb.emailtodb.config.GmailConfig;
 import com.emailtodb.emailtodb.entities.EmailAttachment;
 import com.emailtodb.emailtodb.entities.EmailMessage;
 import com.emailtodb.emailtodb.repositories.EmailAttachmentRepository;
 import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
+import com.google.api.services.gmail.model.MessagePartBody;
+import jakarta.transaction.Transactional;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -29,7 +32,10 @@ public class EmailAttachmentService {
     @Autowired
     private EmailAttachmentRepository emailAttachmentRepository;
 
-    public List<EmailAttachment> getAttachments(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    @Autowired
+    private GmailConfig gmailConfig;
+
+    public List<EmailAttachment> getAttachments(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
         logger.info("Getting attachments started");
         List<EmailAttachment> attachments = new ArrayList<>();
         getAttachmentsRecursive(message.getPayload(), emailMessage, attachments);
@@ -37,10 +43,20 @@ public class EmailAttachmentService {
         return attachments;
     }
 
-    private void getAttachmentsRecursive(MessagePart part, EmailMessage emailMessage, List<EmailAttachment> attachments) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        if (part.getFilename() != null && part.getBody().getData() != null) {
+    private void getAttachmentsRecursive(MessagePart part, EmailMessage emailMessage, List<EmailAttachment> attachments) throws NoSuchAlgorithmException, IOException {
+        if (part.getBody().getAttachmentId() != null && part.getFilename() != null) {
+            logger.info("Attachment found-----------------------------------------");
             EmailAttachment attachment = new EmailAttachment();
-            byte[] fileByteArray = Base64.decodeBase64(part.getBody().getData());
+            byte[] fileByteArray;
+
+            if (part.getBody().getAttachmentId() != null) {
+                MessagePartBody attachmentBody = gmailConfig.getGmailServiceAccount().users().messages().attachments().get("me", emailMessage.getMessageId(), part.getBody().getAttachmentId()).execute();
+                fileByteArray = Base64.decodeBase64(attachmentBody.getData());
+                attachment.setFileName(part.getFilename());
+            } else {
+                fileByteArray = Base64.decodeBase64(part.getBody().getData());
+                attachment.setFileName(part.getFilename());
+            }
 
             // Generate SHA-256 hash of the file content
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -51,7 +67,6 @@ public class EmailAttachmentService {
             String decodedFileName = "unknown";
 
             if (part.getFilename() != null && !part.getFilename().isEmpty()) {
-
                 decodedFileName = decode(part.getFilename(), StandardCharsets.UTF_8);
                 logger.info("Extracted filename (decoded): " + decodedFileName);
                 attachment.setFileName(decodedFileName);
@@ -71,8 +86,6 @@ public class EmailAttachmentService {
             attachment.setFileContent(fileByteArray);
             attachment.setEmailMessage(emailMessage); // Set the relation to the email message
 
-
-
             // Check if an attachment with the same file content hash already exists
             Optional<EmailAttachment> existingAttachment = emailAttachmentRepository.findByFileContentHash(fileContentHash);
             if (existingAttachment.isPresent()) {
@@ -87,7 +100,7 @@ public class EmailAttachmentService {
 
         if (part.getParts() != null) {
             for (MessagePart nestedPart : part.getParts()) {
-                getAttachmentsRecursive(nestedPart, emailMessage, attachments);  // Ensure emailMessage is the correct instance
+                getAttachmentsRecursive(nestedPart, emailMessage, attachments);
             }
         }
     }
@@ -100,7 +113,9 @@ public class EmailAttachmentService {
         return sb.toString();
     }
 
-    public void saveEmailAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    @Transactional
+    public void saveEmailAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
+
         List<EmailAttachment> attachments = getAttachments(message, emailMessage);
 
         logger.info("emailMessage attachments: " + attachments.size());
@@ -108,13 +123,15 @@ public class EmailAttachmentService {
         // Inside saveEmailAttachmentsIfNotExists method
         for (EmailAttachment attachment : attachments) {
             Optional<EmailAttachment> existingEmailAttachment = emailAttachmentRepository.findByFileContentHash(attachment.getFileContentHash());
-            if (!existingEmailAttachment.isPresent()) {
+            if (existingEmailAttachment.isEmpty()) {
                 // Only save the attachment if it doesn't already exist
                 emailAttachmentRepository.save(attachment);
+                //emailAttachmentRepository.flush(); // Force save to database immediately
                 logger.info("Saved new email attachment with hash: " + attachment.getFileContentHash());
             } else {
                 logger.info("Attachment with hash " + attachment.getFileContentHash() + " already exists, skipping save.");
             }
         }
     }
+
 }

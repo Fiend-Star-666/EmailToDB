@@ -31,7 +31,7 @@ services:
   postgres:
     restart: on-failure
     image: postgres
-    command: [ "postgres", "-c", "port=5431" ]
+    command: [ "postgres", "-c", "port=5431", "-c", "max_locks_per_transaction=128", "-c", "shared_buffers=256MB" ]
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword

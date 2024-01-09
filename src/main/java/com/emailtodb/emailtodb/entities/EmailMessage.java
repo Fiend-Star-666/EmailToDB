@@ -15,7 +15,7 @@ public class EmailMessage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "message_id", nullable = false, unique = true)
+    @Column(name = "messageId", nullable = false, unique = true)
     private String messageId;
 
     @Column(name = "subject", nullable = false)
@@ -33,8 +33,8 @@ public class EmailMessage {
     @Column(name = "bcc")
     private String bcc;
 
-    @Column(name = "date_recieved", nullable = false)
-    private Date dateSent;
+    @Column(name = "dateReceived", nullable = false)
+    private Date dateReceived;
 
     @Column(name = "body", nullable = false, columnDefinition = "text")
     private String body;

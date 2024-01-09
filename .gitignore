@@ -36,3 +36,5 @@ build/
 /src/main/resources/service-secrets.json
 /src/main/resources/service_secrets.json
 /tokens/
+/test
+/src/main/resources/output/

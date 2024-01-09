@@ -1,6 +1,7 @@
 package com.emailtodb.emailtodb.scheduler;
 
 import com.emailtodb.emailtodb.services.EmailService;
+import com.emailtodb.emailtodb.services.FileDownloadService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ public class EmailScheduler {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private FileDownloadService fileDownloadService;
+
     //@Scheduled(cron = "0 0 */12 * * *") // Runs every 12 hours, adjust as needed
     //@Scheduled(fixedDelay = 60*60*12*1000, initialDelay = 1000)
     @Scheduled(fixedDelay = 12*60*1000, initialDelay = 1000)
@@ -31,6 +35,17 @@ public class EmailScheduler {
         }
         catch (Exception e) {
             logger.error("Error occurred while fetching and saving emails: " + e.getMessage());
+        }
+    }
+
+    @Scheduled(fixedDelay = 12*60*1000*60, initialDelay = 12000)
+    public void savingEmailAttachmentsRegularly() {
+        try {
+            fileDownloadService.downloadAllFiles("output");
+            logger.info("Fetched and saved attachments successfully");
+        }
+        catch (Exception e) {
+            logger.error("Error occurred while fetching and saving attachments: " + e.getMessage());
         }
     }
 }
