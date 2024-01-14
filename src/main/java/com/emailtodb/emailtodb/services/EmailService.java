@@ -8,7 +8,6 @@ import com.google.api.services.gmail.model.ListMessagesResponse;
 import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartHeader;
-import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +15,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
@@ -31,12 +29,14 @@ public class EmailService {
     @Autowired
     private EmailMessageRepository emailMessageRepository;
 
-
     @Autowired
     private GmailConfig gmailConfig;
 
     @Autowired
     private EmailAttachmentService emailAttachmentService;
+
+    @Autowired
+    private MessagePartProcessingService messagePartProcessingService;
 
     @Value("${gmail.sender.emailFilter}")
     private String emailFilter;
@@ -67,7 +67,7 @@ public class EmailService {
 
         logger.info("Fetched " + newMessages.size() + " new messages");
 
-        if(newMessages.isEmpty()) {
+        if (newMessages.isEmpty()) {
             logger.info("No new messages");
             return;
         }
@@ -120,7 +120,6 @@ public class EmailService {
     }
 
 
-
     private void saveEmailMessageAndItsAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
 
         Optional<EmailMessage> existingEmailMessage = emailMessageRepository.findByMessageId(emailMessage.getMessageId());
@@ -134,6 +133,9 @@ public class EmailService {
         logger.info("Saved email message");
 
         emailAttachmentService.saveEmailAttachmentsIfNotExists(message, emailMessage);
+
+        // Check for Google Drive links in the message and its attachments
+        checkForGoogleDriveLinks(message);
     }
 
 
@@ -181,7 +183,7 @@ public class EmailService {
         }
 
         // Extract the body of the email
-        String body = getBody(message.getPayload());
+        String body = messagePartProcessingService.getBody(message.getPayload());
         if (body == null) {
             body = "";
         }
@@ -202,9 +204,9 @@ public class EmailService {
     }
 
     public List<Message> fetchMessagesSince(Gmail service, String userId, Date sinceDate) throws IOException {
-        
+
         logger.info("Fetching messages since " + sinceDate);
-        
+
         SimpleDateFormat gmailDateFormat = new SimpleDateFormat("yyyy/MM/dd");
         gmailDateFormat.setTimeZone(TimeZone.getTimeZone("GMT")); // Gmail uses GMT
 
@@ -231,19 +233,18 @@ public class EmailService {
         return detailedMessages;
     }
 
-    private String getBody(MessagePart part) {
-        if (part.getMimeType().equals("text/plain") || part.getMimeType().equals("text/html")) {
-            return new String(Base64.decodeBase64(part.getBody().getData()));
-        }
-        if (part.getParts() != null) {
-            for (MessagePart nestedPart : part.getParts()) {
-                String body = getBody(nestedPart);
-                if (body != null) {
-                    return body;
-                }
+    private void checkForGoogleDriveLinks(Message message) {
+        List<MessagePart> parts = message.getPayload().getParts();
+        if (parts != null) {
+            for (MessagePart part : parts) {
+                Optional<String> fileIdOptional = messagePartProcessingService.getGoogleDriveFileIdIfLink(part);
+                fileIdOptional.ifPresent(fileId -> {
+                    // Process the Google Drive file ID as needed
+                    // For example, you can print it to the console:
+                    System.out.println("Found Google Drive file ID: " + fileId);
+                });
             }
         }
-        return null;
     }
 
 }

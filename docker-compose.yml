@@ -16,6 +16,8 @@ services:
       - dbHost=${DB_HOST}
       - emailFilter=${EMAIL_FILTER}
       - emailUser=${EMAIL_USER}
+      - dbUser=${DB_USER}
+      - dbPassword=${DB_PASSWORD}
     deploy:
       resources:
         limits:
