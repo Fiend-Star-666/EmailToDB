@@ -4,6 +4,8 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
@@ -22,11 +24,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.security.GeneralSecurityException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Objects;
 
 @Configuration
 public class GmailConfig {
+
+    private static final int READ_TIMEOUT = (int) Duration.ofMinutes(5).toMillis();  // 5 minutes
+    private static final int CONNECTION_TIMEOUT = (int) Duration.ofMinutes(5).toMillis();  // 5 minutes
 
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
@@ -56,15 +62,25 @@ public class GmailConfig {
         // Load credentials from the client_secret.json file
         GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(GmailConfig.class.getResourceAsStream(SERVICE_SECRET_FILE)))
                 //.createScoped(GmailScopes.all())
-                .createScoped(GmailScopes.GMAIL_READONLY)
+                .createScoped(GmailScopes.MAIL_GOOGLE_COM)
                 .createDelegated(this.userEmail); // replace with the user you want to impersonate;
 
-        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpCredentialsAdapter(credentials))
+        HttpRequestInitializer httpRequestInitializer = new HttpCredentialsAdapter(credentials) {
+            @Override
+            public void initialize(HttpRequest httpRequest) throws IOException {
+                super.initialize(httpRequest);
+                httpRequest.setReadTimeout(READ_TIMEOUT);
+                httpRequest.setConnectTimeout(CONNECTION_TIMEOUT);
+            }
+        };
+
+        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, httpRequestInitializer)
                 .setApplicationName("Email to DB Application")
                 .build();
 
     }
 
+    //Oauth2 way with user consent
     public static Gmail getGmailClientAccount() throws IOException, GeneralSecurityException {
 
         final NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();

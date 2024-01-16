@@ -1,5 +1,7 @@
 package com.emailtodb.emailtodb.config;
 
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Objects;
 
 @Configuration
@@ -19,14 +22,14 @@ public class DriveConfig {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
 
-    private static final String CLIENT_SECRET_FILE = "/client_secrets.json";
-
     private static final String SERVICE_SECRET_FILE = "/service_secrets.json";
-
-    private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
     @Value("${gmail.user.email}")
     private String userEmail;
+
+    private static final int READ_TIMEOUT = (int) Duration.ofMinutes(5).toMillis();  // 5 minutes
+
+    private static final int CONNECTION_TIMEOUT = (int) Duration.ofMinutes(5).toMillis();  // 5 minutes
 
     /*
     To delegate domain-wide authority to your service account, follow these steps:
@@ -41,13 +44,23 @@ public class DriveConfig {
      */
     public Drive getDriveServiceAccount() throws IOException {
 
+
         // Load credentials from the client_secret.json file
         GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(DriveConfig.class.getResourceAsStream(SERVICE_SECRET_FILE)))
                 .createScoped(DriveScopes.all())
                 //.createScoped(DriveScopes.DRIVE_READONLY)
                 .createDelegated(this.userEmail); // replace with the user you want to impersonate;
 
-        return new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpCredentialsAdapter(credentials))
+        HttpRequestInitializer httpRequestInitializer = new HttpCredentialsAdapter(credentials) {
+            @Override
+            public void initialize(HttpRequest httpRequest) throws IOException {
+                super.initialize(httpRequest);
+                httpRequest.setReadTimeout(READ_TIMEOUT);
+                httpRequest.setConnectTimeout(CONNECTION_TIMEOUT);
+            }
+        };
+
+        return new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, httpRequestInitializer)
                 .setApplicationName("Email to DB Application")
                 .build();
 

@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -24,25 +23,34 @@ import java.util.*;
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
-
+    private static final String PROCESSED_LABEL = "Processed";
+    private static final String FAILED_TO_PROCESS_LABEL = "FailedToProcess";
     @Autowired
     private EmailMessageRepository emailMessageRepository;
-
     @Autowired
     private GmailConfig gmailConfig;
-
     @Autowired
     private EmailAttachmentService emailAttachmentService;
-
     @Autowired
     private MessagePartProcessingService messagePartProcessingService;
-
+    @Autowired
+    private EmailHandlerServices emailHandlerServices;
     @Value("${gmail.sender.emailFilter}")
     private String emailFilter;
 
-    public void fetchAndSaveEmailsConditionally() throws IOException, GeneralSecurityException {
+    public void fetchAndSaveEmailsConditionally() throws IOException {
+
+        StringBuilder summary = new StringBuilder();
+        StringBuilder successSummary = new StringBuilder();
+        StringBuilder failedSummary = new StringBuilder();
+
+        int totalEmailsRead = 0;
+        int totalEmailsAdded = 0;
+        int totalEmailsFailedToLoad = 0;
 
         logger.info("Conditionally fetching and saving emails started");
+
+        summary.append(System.lineSeparator()).append("Email Processing Summary:").append(System.lineSeparator());
 
         //In the context of the Gmail API, "me" is an alias for the authenticated user who is making the request
         String userId = "me";
@@ -73,13 +81,60 @@ public class EmailService {
 
         for (Message message : newMessages) {
 
+            totalEmailsRead++;
+
             EmailMessage emailMessage = extractEmailMessageFromGmailMessage(message);
 
             // Check if the "body" or the "From" field contains the string emailFilter
             if (emailMessage.getBody().contains(emailFilter) || emailMessage.getFrom().contains(emailFilter)) {
-                saveEmailMessageAndItsAttachmentsIfNotExists(message, emailMessage);
+                totalEmailsAdded++;
+                try {
+                    saveEmailMessageAndItsAttachmentsIfNotExists(message, emailMessage);
+
+                    emailHandlerServices.labelEmailAsProvidedLabel(userId, message.getId(), PROCESSED_LABEL);
+
+                    successSummary.append("Successfully Loaded the email with messageID: ").append(emailMessage.getMessageId()).
+                            append(" and Subject: ").append(emailMessage.getSubject()).append(System.lineSeparator()).append(System.lineSeparator());
+
+                    if (emailMessage.getEmailAttachments() != null)
+                        summary.append("Number of Email Attachments:").append(emailMessage.getEmailAttachments().size()).append(System.lineSeparator());
+
+                } catch (Exception e) {
+                    totalEmailsFailedToLoad++;
+                    logger.error("Error while saving email message and its attachments: " + e.getMessage());
+
+                    emailHandlerServices.labelEmailAsProvidedLabel(userId, message.getId(), FAILED_TO_PROCESS_LABEL);
+
+                    failedSummary.append(" Failed to Load the email with messageID: ").append(emailMessage.getMessageId()).
+                            append(" and Subject: ").append(emailMessage.getSubject()).append(System.lineSeparator()).append(System.lineSeparator());
+                }
             }
         }
+
+        summary.append("------------------------").append(System.lineSeparator());
+        summary.append("Total emails read from Inbox: ").append(totalEmailsRead).append(System.lineSeparator());
+        summary.append("Total emails added to database after Filtering: ").append(totalEmailsAdded).append(System.lineSeparator());
+        summary.append("Total emails failed to load: ").append(totalEmailsFailedToLoad).append(System.lineSeparator());
+        summary.append("------------------------").append(System.lineSeparator());
+
+        summary.append("Successful Emails Summary:").append(System.lineSeparator());
+
+        if (totalEmailsAdded == 0) {
+            summary.append("No emails added to database after Filtering").append(System.lineSeparator());
+        } else summary.append(successSummary).append(System.lineSeparator());
+
+        summary.append("------------------------").append(System.lineSeparator());
+
+
+        summary.append("Failed Emails Summary:").append(System.lineSeparator());
+        if (totalEmailsFailedToLoad == 0) {
+            summary.append("No failures in Loading Emails").append(System.lineSeparator());
+        } else summary.append(failedSummary).append(System.lineSeparator());
+
+        summary.append(System.lineSeparator()).append("------------------------").append(System.lineSeparator());
+
+
+        emailHandlerServices.sendSummaryEmail(userId, summary.toString());
 
         logger.info("Conditional fetching and saving emails completed");
 
@@ -98,7 +153,7 @@ public class EmailService {
                 return messages;
             }
 
-            ListMessagesResponse messageResponse = service.users().messages().list(user).execute();
+            ListMessagesResponse messageResponse = service.users().messages().list(user).setLabelIds(Collections.singletonList("INBOX")).execute();
 
             List<Message> messageIds = messageResponse.getMessages();
 
@@ -133,9 +188,7 @@ public class EmailService {
         logger.info("Saved email message");
 
         emailAttachmentService.saveEmailAttachmentsIfNotExists(message, emailMessage);
-
-        // Check for Google Drive links in the message and its attachments
-        //checkForGoogleDriveLinks(message);
+        logger.info("Saved email attachments");
     }
 
 
@@ -211,7 +264,7 @@ public class EmailService {
         gmailDateFormat.setTimeZone(TimeZone.getTimeZone("GMT")); // Gmail uses GMT
 
         String query = "after:" + gmailDateFormat.format(sinceDate);
-        ListMessagesResponse response = service.users().messages().list(userId).setQ(query).execute();
+        ListMessagesResponse response = service.users().messages().list(userId).setQ(query).setLabelIds(Collections.singletonList("INBOX")).execute();
 
         List<Message> messages = new ArrayList<>();
         while (response.getMessages() != null) {
@@ -232,19 +285,5 @@ public class EmailService {
         }
         return detailedMessages;
     }
-
-//    private void checkForGoogleDriveLinks(Message message) {
-//        List<MessagePart> parts = message.getPayload().getParts();
-//        if (parts != null) {
-//            for (MessagePart part : parts) {
-//                Optional<String> fileIdOptional = messagePartProcessingService.getGoogleDriveFileIdsIfLink(part);
-//                fileIdOptional.ifPresent(fileId -> {
-//                    // Process the Google Drive file ID as needed
-//                    // For example, you can print it to the console:
-//                    System.out.println("Found Google Drive file ID: " + fileId);
-//                });
-//            }
-//        }
-//    }
 
 }
