@@ -6,7 +6,6 @@ import com.emailtodb.emailtodb.repositories.EmailMessageRepository;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.ListMessagesResponse;
 import com.google.api.services.gmail.model.Message;
-import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,9 +107,10 @@ public class EmailService {
                     // Fetch the full message using the ID
                     Message message = service.users().messages().get(user, messageId.getId()).execute();
                     messages.add(message);
-                    logger.info("Fetched message with ID: " + message.getId());
                 }
             }
+            logger.info("Fetched " + messages.size() + " messages");
+
         } catch (IOException e) {
             logger.error("An error occurred: " + e);
         }
@@ -135,7 +135,7 @@ public class EmailService {
         emailAttachmentService.saveEmailAttachmentsIfNotExists(message, emailMessage);
 
         // Check for Google Drive links in the message and its attachments
-        checkForGoogleDriveLinks(message);
+        //checkForGoogleDriveLinks(message);
     }
 
 
@@ -233,18 +233,18 @@ public class EmailService {
         return detailedMessages;
     }
 
-    private void checkForGoogleDriveLinks(Message message) {
-        List<MessagePart> parts = message.getPayload().getParts();
-        if (parts != null) {
-            for (MessagePart part : parts) {
-                Optional<String> fileIdOptional = messagePartProcessingService.getGoogleDriveFileIdIfLink(part);
-                fileIdOptional.ifPresent(fileId -> {
-                    // Process the Google Drive file ID as needed
-                    // For example, you can print it to the console:
-                    System.out.println("Found Google Drive file ID: " + fileId);
-                });
-            }
-        }
-    }
+//    private void checkForGoogleDriveLinks(Message message) {
+//        List<MessagePart> parts = message.getPayload().getParts();
+//        if (parts != null) {
+//            for (MessagePart part : parts) {
+//                Optional<String> fileIdOptional = messagePartProcessingService.getGoogleDriveFileIdsIfLink(part);
+//                fileIdOptional.ifPresent(fileId -> {
+//                    // Process the Google Drive file ID as needed
+//                    // For example, you can print it to the console:
+//                    System.out.println("Found Google Drive file ID: " + fileId);
+//                });
+//            }
+//        }
+//    }
 
 }

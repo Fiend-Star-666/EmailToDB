@@ -4,8 +4,8 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
-import com.google.api.services.gmail.Gmail;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +39,7 @@ public class DriveConfig {
     7) Click Authorize.
     8) Now, your service account has domain-wide delegation of authority and can access user data for users in your G Suite domain.
      */
-    public Gmail getDriveServiceAccount() throws IOException {
+    public Drive getDriveServiceAccount() throws IOException {
 
         // Load credentials from the client_secret.json file
         GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(DriveConfig.class.getResourceAsStream(SERVICE_SECRET_FILE)))
@@ -47,7 +47,7 @@ public class DriveConfig {
                 //.createScoped(DriveScopes.DRIVE_READONLY)
                 .createDelegated(this.userEmail); // replace with the user you want to impersonate;
 
-        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpCredentialsAdapter(credentials))
+        return new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpCredentialsAdapter(credentials))
                 .setApplicationName("Email to DB Application")
                 .build();
 

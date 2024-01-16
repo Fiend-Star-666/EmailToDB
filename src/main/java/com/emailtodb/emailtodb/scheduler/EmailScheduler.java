@@ -9,9 +9,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
 @Component
 @EnableScheduling
 public class EmailScheduler {
@@ -27,24 +24,23 @@ public class EmailScheduler {
 
     //@Scheduled(cron = "0 0 */12 * * *") // Runs every 12 hours, adjust as needed
     //@Scheduled(fixedDelay = 60*60*12*1000, initialDelay = 1000)
-    @Scheduled(fixedDelay = 12*60*1000, initialDelay = 1000)
+    @Scheduled(fixedDelay = 20 * 60 * 1000, initialDelay = 1000)
     public void fetchEmailsRegularly() {
         try {
             emailService.fetchAndSaveEmailsConditionally();
             logger.info("Fetched and saved emails successfully");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.error("Error occurred while fetching and saving emails: " + e.getMessage());
         }
     }
 
-    @Scheduled(fixedDelay = 12*60*1000*60, initialDelay = 12000)
+    // Runs every 12 hours, with delay of 5 minutes after application start up (to allow for email fetching)
+    @Scheduled(fixedDelay = 12 * 60 * 1000 * 60, initialDelay = 1000 * 60 * 5)
     public void savingEmailAttachmentsRegularly() {
         try {
             fileDownloadService.downloadAllFiles("output");
             logger.info("Fetched and saved attachments successfully");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.error("Error occurred while fetching and saving attachments: " + e.getMessage());
         }
     }
