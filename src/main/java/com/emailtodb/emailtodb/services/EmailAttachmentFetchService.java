@@ -10,7 +10,6 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import com.google.api.services.gmail.model.MessagePartBody;
-import jakarta.transaction.Transactional;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,14 +21,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.net.URLDecoder.decode;
 
 @Service
-public class EmailAttachmentService {
+public class EmailAttachmentFetchService {
 
-    private static final Logger logger = LoggerFactory.getLogger(EmailAttachmentService.class);
+    private static final Logger logger = LoggerFactory.getLogger(EmailAttachmentFetchService.class);
+
+    private static final String UNKNOWN = "unknown";
+
 
     @Autowired
     private EmailAttachmentRepository emailAttachmentRepository;
@@ -46,20 +49,41 @@ public class EmailAttachmentService {
     public List<EmailAttachment> getAttachments(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
         logger.info("Getting attachments started");
         List<EmailAttachment> attachments = new ArrayList<>();
-        getAttachmentsRecursive(message.getPayload(), emailMessage, attachments);
+        processMessageParts(message.getPayload(), emailMessage, attachments);
         logger.info("Getting attachments completed");
         return attachments;
     }
 
-    private void getAttachmentsRecursive(MessagePart part, EmailMessage emailMessage, List<EmailAttachment> attachments) throws NoSuchAlgorithmException, IOException {
-        processGoogleDriveLinks(part, emailMessage, attachments);
-        processRegularAttachments(part, emailMessage, attachments);
-        processNestedParts(part, emailMessage, attachments);
+    private void processMessageParts(MessagePart part, EmailMessage emailMessage, List<EmailAttachment> attachments) throws NoSuchAlgorithmException, IOException {
+        if (isGoogleDriveLink(part)) {
+            processGoogleDriveLinks(part, emailMessage, attachments);
+        } else if (isRegularAttachment(part)) {
+            processRegularAttachments(part, emailMessage, attachments);
+        } else if (hasNestedParts(part)) {
+            processNestedParts(part, emailMessage, attachments);
+        }
+    }
+
+    private boolean isGoogleDriveLink(MessagePart part) {
+        return !messagePartProcessingService.getGoogleDriveFileIdsIfLink(part).isEmpty();
+    }
+
+    private boolean isRegularAttachment(MessagePart part) {
+        return part.getBody().getAttachmentId() != null && part.getFilename() != null;
+    }
+
+    private boolean hasNestedParts(MessagePart part) {
+        return part.getParts() != null;
     }
 
     private void processGoogleDriveLinks(MessagePart part, EmailMessage emailMessage, List<EmailAttachment> attachments) throws IOException, NoSuchAlgorithmException {
 
         List<String> driveFileIds = messagePartProcessingService.getGoogleDriveFileIdsIfLink(part);
+
+        if (driveFileIds.isEmpty()) {
+            logger.info("No Google Drive Link Found");
+            return;
+        }
 
         for (String driveFileId : driveFileIds) {
             logger.info("Google Drive Link Found");
@@ -95,7 +119,6 @@ public class EmailAttachmentService {
         return attachment;
     }
 
-
     private void processRegularAttachments(MessagePart part, EmailMessage emailMessage, List<EmailAttachment> attachments) throws NoSuchAlgorithmException, IOException {
         if (part.getBody().getAttachmentId() != null && part.getFilename() != null) {
             logger.info("Attachment found");
@@ -109,7 +132,7 @@ public class EmailAttachmentService {
 
     private EmailAttachment createRegularAttachment(MessagePart part, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
         EmailAttachment attachment = new EmailAttachment();
-        byte[] fileByteArray = decodeAttachmentBody(part,emailMessage);
+        byte[] fileByteArray = decodeAttachmentBody(part, emailMessage);
         attachment.setFileContent(fileByteArray);
         attachment.setFileName(determineFileName(part));
         attachment.setFileExtension(determineFileExtension(part));
@@ -125,26 +148,26 @@ public class EmailAttachmentService {
     private void processNestedParts(MessagePart part, EmailMessage emailMessage, List<EmailAttachment> attachments) throws NoSuchAlgorithmException, IOException {
         if (part.getParts() != null) {
             for (MessagePart nestedPart : part.getParts()) {
-                getAttachmentsRecursive(nestedPart, emailMessage, attachments);
+                processMessageParts(nestedPart, emailMessage, attachments);
             }
         }
     }
 
-// Add additional helper methods like decodeAttachmentBody, determineFileName, determineFileExtension, and generateFileContentHash here...
-private byte[] decodeAttachmentBody(MessagePart part, EmailMessage emailMessage) throws IOException {
-    MessagePartBody attachmentBody;
-    if (part.getBody().getAttachmentId() != null) {
-        attachmentBody = gmailConfig.getGmailServiceAccount().users().messages().attachments()
-                .get("me", emailMessage.getMessageId(), part.getBody().getAttachmentId()).execute();
-    } else {
-        attachmentBody = part.getBody();
+    // Add additional helper methods like decodeAttachmentBody, determineFileName, determineFileExtension, and generateFileContentHash here...
+    private byte[] decodeAttachmentBody(MessagePart part, EmailMessage emailMessage) throws IOException {
+        MessagePartBody attachmentBody;
+        if (part.getBody().getAttachmentId() != null) {
+            attachmentBody = gmailConfig.getGmailServiceAccount().users().messages().attachments()
+                    .get("me", emailMessage.getMessageId(), part.getBody().getAttachmentId()).execute();
+        } else {
+            attachmentBody = part.getBody();
+        }
+        return Base64.decodeBase64(attachmentBody.getData());
     }
-    return Base64.decodeBase64(attachmentBody.getData());
-}
 
     private String determineFileName(MessagePart part) {
         String fileName = part.getFilename();
-        return (fileName != null && !fileName.isEmpty()) ? decode(fileName, StandardCharsets.UTF_8) : "unknown";
+        return (fileName != null && !fileName.isEmpty()) ? decode(fileName, StandardCharsets.UTF_8) : UNKNOWN;
     }
 
     private String determineFileExtension(MessagePart part) {
@@ -154,7 +177,7 @@ private byte[] decodeAttachmentBody(MessagePart part, EmailMessage emailMessage)
             return decodedFileName.substring(lastDotIndex + 1);
         } else {
             logger.warn("No file extension found for filename: " + decodedFileName);
-            return "unknown";
+            return UNKNOWN;
         }
     }
 
@@ -172,24 +195,5 @@ private byte[] decodeAttachmentBody(MessagePart part, EmailMessage emailMessage)
         return sb.toString();
     }
 
-    @Transactional
-    public void saveEmailAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
-
-        List<EmailAttachment> attachments = getAttachments(message, emailMessage);
-
-        logger.info("emailMessage attachments: " + attachments.size());
-
-        // Inside saveEmailAttachmentsIfNotExists method
-        for (EmailAttachment attachment : attachments) {
-            Optional<EmailAttachment> existingEmailAttachment = emailAttachmentRepository.findByFileContentHash(attachment.getFileContentHash());
-            if (existingEmailAttachment.isEmpty()) {
-                // Only save the attachment if it doesn't already exist
-                emailAttachmentRepository.save(attachment);
-                logger.info("Saved new email attachment with hash: " + attachment.getFileContentHash());
-            } else {
-                logger.info("Attachment with hash " + attachment.getFileContentHash() + " already exists, skipping save.");
-            }
-        }
-    }
 
 }

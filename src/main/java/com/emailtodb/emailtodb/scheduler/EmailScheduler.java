@@ -1,6 +1,6 @@
 package com.emailtodb.emailtodb.scheduler;
 
-import com.emailtodb.emailtodb.services.EmailService;
+import com.emailtodb.emailtodb.services.EmailSummaryService;
 import com.emailtodb.emailtodb.services.FileDownloadService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +17,7 @@ public class EmailScheduler {
 
 
     @Autowired
-    private EmailService emailService;
+    private EmailSummaryService emailService;
 
     @Autowired
     private FileDownloadService fileDownloadService;
