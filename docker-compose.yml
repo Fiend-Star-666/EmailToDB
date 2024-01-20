@@ -14,10 +14,13 @@ services:
       - custom_network
     environment:
       - dbHost=${DB_HOST}
-      - emailFilter=${EMAIL_FILTER}
-      - emailUser=${EMAIL_USER}
       - dbUser=${DB_USER}
       - dbPassword=${DB_PASSWORD}
+      - dbPort=${DB_PORT}
+      - emailFilter=${EMAIL_FILTER}
+      - emailUser=${EMAIL_USER}
+      - emailSummaryCC=${EMAIL_SUMMARY_CC}
+      - emailSummaryTo=${EMAIL_SUMMARY_TO}
     deploy:
       resources:
         limits:

@@ -42,13 +42,7 @@ public class EmailSaveService {
             logger.info("Saved email message");
 
             try {
-
                 emailAttachmentSaveService.saveEmailAttachmentsIfNotExists(message, emailMessage);
-
-                if (emailMessage.getEmailAttachments() != null)
-                    logger.info("Saved" + emailMessage.getEmailAttachments().size() + " email attachments");
-                else logger.info("No email attachments to save");
-
             } catch (Exception e) {
                 logger.error("Error while saving email attachments: " + e.getMessage());
                 // Transaction will be rolled back, no need to manually delete the email message due to Transactional annotation
