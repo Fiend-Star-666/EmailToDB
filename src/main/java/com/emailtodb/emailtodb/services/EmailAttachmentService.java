@@ -185,7 +185,6 @@ private byte[] decodeAttachmentBody(MessagePart part, EmailMessage emailMessage)
             if (existingEmailAttachment.isEmpty()) {
                 // Only save the attachment if it doesn't already exist
                 emailAttachmentRepository.save(attachment);
-                //emailAttachmentRepository.flush(); // Force save to database immediately
                 logger.info("Saved new email attachment with hash: " + attachment.getFileContentHash());
             } else {
                 logger.info("Attachment with hash " + attachment.getFileContentHash() + " already exists, skipping save.");

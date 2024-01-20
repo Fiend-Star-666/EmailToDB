@@ -7,6 +7,7 @@ import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.ListMessagesResponse;
 import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePartHeader;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,8 +94,7 @@ public class EmailService {
 
                     emailHandlerServices.labelEmailAsProvidedLabel(userId, message.getId(), PROCESSED_LABEL);
 
-                    successSummary.append("Successfully Loaded the email with messageID: ").append(emailMessage.getMessageId()).
-                            append(" and Subject: ").append(emailMessage.getSubject()).append(System.lineSeparator()).append(System.lineSeparator());
+                    successSummary.append("Successfully Loaded the email with messageID: ").append(emailMessage.getMessageId()).append(" and Subject: ").append(emailMessage.getSubject()).append(System.lineSeparator()).append(System.lineSeparator());
 
                     if (emailMessage.getEmailAttachments() != null)
                         summary.append("Number of Email Attachments:").append(emailMessage.getEmailAttachments().size()).append(System.lineSeparator());
@@ -105,8 +105,7 @@ public class EmailService {
 
                     emailHandlerServices.labelEmailAsProvidedLabel(userId, message.getId(), FAILED_TO_PROCESS_LABEL);
 
-                    failedSummary.append(" Failed to Load the email with messageID: ").append(emailMessage.getMessageId()).
-                            append(" and Subject: ").append(emailMessage.getSubject()).append(System.lineSeparator()).append(System.lineSeparator());
+                    failedSummary.append(" Failed to Load the email with messageID: ").append(emailMessage.getMessageId()).append(" and Subject: ").append(emailMessage.getSubject()).append(System.lineSeparator()).append(System.lineSeparator());
                 }
             }
         }
@@ -175,7 +174,8 @@ public class EmailService {
     }
 
 
-    private void saveEmailMessageAndItsAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
+    @Transactional
+    public void saveEmailMessageAndItsAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
 
         Optional<EmailMessage> existingEmailMessage = emailMessageRepository.findByMessageId(emailMessage.getMessageId());
 
@@ -184,11 +184,27 @@ public class EmailService {
             return;
         }
 
-        emailMessageRepository.save(emailMessage);
-        logger.info("Saved email message");
+        try {
+            emailMessageRepository.save(emailMessage);
+            logger.info("Saved email message");
 
-        emailAttachmentService.saveEmailAttachmentsIfNotExists(message, emailMessage);
-        logger.info("Saved email attachments");
+            try {
+
+                emailAttachmentService.saveEmailAttachmentsIfNotExists(message, emailMessage);
+
+                if (emailMessage.getEmailAttachments() != null)
+                    logger.info("Saved" + emailMessage.getEmailAttachments().size() + " email attachments");
+                else logger.info("No email attachments to save");
+
+            } catch (Exception e) {
+                logger.error("Error while saving email attachments: " + e.getMessage());
+                // Transaction will be rolled back, no need to manually delete the email message due to Transactional annotation
+            }
+
+        } catch (Exception e) {
+            logger.error("Error while saving email message and its attachments: " + e.getMessage());
+        }
+
     }
 
 
