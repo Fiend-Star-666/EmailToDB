@@ -26,11 +26,17 @@ public class EmailScheduler {
     //@Scheduled(fixedDelay = 60*60*12*1000, initialDelay = 1000)
     @Scheduled(fixedDelay = 20 * 60 * 1000, initialDelay = 60*1000)
     public void fetchEmailsRegularly() {
-        try {
-            emailService.fetchAndSaveEmailsConditionally();
-            logger.info("Fetched and saved emails successfully");
-        } catch (Exception e) {
-            logger.error("Error occurred while fetching and saving emails: " + e.getMessage());
+        for (int i = 0; i < 5; i++) {
+            try {
+                emailService.fetchAndSaveEmailsConditionally();
+                logger.info("Fetched and saved emails successfully");
+                break; // If successful, break the loop
+            } catch (Exception e) {
+                logger.error("Attempt " + (i+1) + ": Error occurred while fetching and saving emails: " + e.getMessage());
+                if (i == 4) {
+                    logger.error("Failed to fetch and save emails after 5 attempts");
+                }
+            }
         }
     }
 
