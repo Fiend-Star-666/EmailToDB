@@ -23,8 +23,8 @@ services:
       - emailUser=${EMAIL_USER}
       - emailSummaryCC=${EMAIL_SUMMARY_CC}
       - emailSummaryTo=${EMAIL_SUMMARY_TO}
-      - azureStorageConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
-      - azureStorageContainerName=${AZURE_STORAGE_CONTAINER_NAME}
+#      - azureStorageConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
+#      - azureStorageContainerName=${AZURE_STORAGE_CONTAINER_NAME}
     deploy:
       resources:
         limits:
@@ -33,9 +33,9 @@ services:
         reservations:
           cpus: '1.0'
           memory: 1G
-    depends_on:
-      postgres:
-        condition: service_healthy
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
 
 #  postgres:
 #    restart: on-failure
@@ -68,6 +68,6 @@ services:
 #volumes:
 #  postgres-data:
 #
-#networks:
-#  custom_network:
+networks:
+  custom_network:
 #    driver: bridge
