@@ -10,8 +10,8 @@ services:
       - "9091:9091"
     volumes:
       - ./:/usr/src/myapp
-    networks:
-      - custom_network
+#    networks:
+#      - custom_network
     environment:
       - dbHost=${DB_HOST}
       - dbUser=${DB_USER}
@@ -25,14 +25,14 @@ services:
       - emailSummaryTo=${EMAIL_SUMMARY_TO}
 #      - azureStorageConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
 #      - azureStorageContainerName=${AZURE_STORAGE_CONTAINER_NAME}
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2G
-        reservations:
-          cpus: '1.0'
-          memory: 1G
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '2.0'
+#          memory: 2G
+#        reservations:
+#          cpus: '1.0'
+#          memory: 1G
 #    depends_on:
 #      postgres:
 #        condition: service_healthy
@@ -68,6 +68,6 @@ services:
 #volumes:
 #  postgres-data:
 #
-networks:
-  custom_network:
+#networks:
+#  custom_network:
 #    driver: bridge
