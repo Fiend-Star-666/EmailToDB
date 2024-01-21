@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "email_attachment")
+@Table(name = "email_attachments", schema = "dbo")
 public class EmailAttachment {
 
     @Id

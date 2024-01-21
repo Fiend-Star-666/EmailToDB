@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 @Entity
-@Table(name = "email_messages")
+@Table(name = "email_messages", schema = "dbo")
 public class EmailMessage {
 
     @Id
