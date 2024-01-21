@@ -160,10 +160,8 @@ public class EmailSummaryService {
         Message message = createMessageWithEmail(subject, summary);
 
         try {
-
-            logger.info("Sending summary email");
             gmailConfig.getGmailServiceAccount().users().messages().send(userId, message).execute();
-
+            logger.info("Summary email sent");
         } catch (Exception e) {
             logger.error("Error sending summary email: {}", e.getMessage());
             throw e;

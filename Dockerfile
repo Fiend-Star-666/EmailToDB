@@ -22,5 +22,22 @@ COPY --from=builder /usr/src/myapp/target/EmailToDb-0.0.1-SNAPSHOT.jar /usr/app/
 # Set the working directory
 WORKDIR /usr/app
 
+# Set environment variables
+ENV dbHost=${DB_HOST}
+ENV dbUser=${DB_USER}
+ENV dbPassword=${DB_PASSWORD}
+ENV dbPort=${DB_PORT}
+ENV dbName=${DB_NAME}
+ENV dbType=${DB_TYPE}
+ENV emailFilter=${EMAIL_FILTER}
+ENV emailUser=${EMAIL_USER}
+ENV emailSummaryCC=${EMAIL_SUMMARY_CC}
+ENV emailSummaryTo=${EMAIL_SUMMARY_TO}
+ENV azureStorageConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
+ENV azureStorageContainerName=${AZURE_STORAGE_CONTAINER_NAME}
+
+# Expose ports
+EXPOSE 9091
+
 # Set the entry point to run the jar
 ENTRYPOINT ["java","-jar","EmailToDb.jar"]
