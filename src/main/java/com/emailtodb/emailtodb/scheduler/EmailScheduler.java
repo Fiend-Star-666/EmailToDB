@@ -32,9 +32,9 @@ public class EmailScheduler {
                 logger.info("Fetched and saved emails successfully");
                 break; // If successful, break the loop
             } catch (Exception e) {
-                logger.error("Attempt " + (i+1) + ": Error occurred while fetching and saving emails: " + e.getMessage());
+                logger.error("Attempt " + (i+1) + ": Error occurred while fetching and saving emails: " + e);
                 if (i == 4) {
-                    logger.error("Failed to fetch and save emails after 5 attempts");
+                    logger.error("Failed to fetch and save emails after 5 attempts", e);
                 }
             }
         }
