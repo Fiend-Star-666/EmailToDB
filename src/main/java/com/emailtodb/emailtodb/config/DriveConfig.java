@@ -27,7 +27,8 @@ public class DriveConfig {
 
     private static final String SERVICE_SECRET_FILE = "/service_secrets.json";
 
-    private static final String serviceSecretsJson = System.getenv("service-secrets");
+    @Value("${service-secret-json}")
+    private String serviceSecretsJson;
 
     @Value("${gmail.user.email}")
     private String userEmail;
