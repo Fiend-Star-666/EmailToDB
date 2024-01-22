@@ -40,7 +40,7 @@ public class EmailScheduler {
         }
     }
 
-    // Runs every 12 hours, with delay of 5 minutes after application start up (to allow for email fetching)
+//    Runs every 12 hours, with delay of 5 minutes after application start up (to allow for email fetching)
 //    @Scheduled(fixedDelay = 12 * 60 * 1000 * 60, initialDelay = 1000 * 60 * 5)
 //    public void savingEmailAttachmentsRegularly() {
 //        try {
