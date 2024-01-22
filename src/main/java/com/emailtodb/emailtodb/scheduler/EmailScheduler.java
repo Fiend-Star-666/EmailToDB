@@ -23,7 +23,7 @@ public class EmailScheduler {
 
     //@Scheduled(cron = "0 0 */12 * * *") // Runs every 12 hours, adjust as needed
     //@Scheduled(fixedDelay = 60*60*12*1000, initialDelay = 1000)
-    @Scheduled(fixedDelay = 12 * 60 * 60 * 1000, initialDelay = 60 * 1000)
+    @Scheduled(fixedDelay = 12 * 60 * 60 * 1000, initialDelay = 5 * 60 * 1000)
     // Runs every 12 hours, with delay of 1 minute after application start up (to allow for email fetching)
     public void fetchEmailsRegularly() {
         for (int i = 0; i < 5; i++) {
