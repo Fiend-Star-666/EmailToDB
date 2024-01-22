@@ -39,6 +39,5 @@ ENV emailSummaryTo=${EMAIL_SUMMARY_TO}
 # Expose ports
 EXPOSE 9091
 
-
 # Set the entry point to run the jar
 ENTRYPOINT ["java","-jar","EmailToDb.jar"]
