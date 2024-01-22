@@ -43,7 +43,7 @@ public class GmailConfig {
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
     @Value("${service-secret-json}")
-    private String serviceSecretsJson;// = System.getenv("service-secrets");
+    private String serviceSecretsJson;
 
     @Value("${gmail.user.email}")
     private String userEmail;
