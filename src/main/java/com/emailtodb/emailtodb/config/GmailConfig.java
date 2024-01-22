@@ -49,7 +49,6 @@ public class GmailConfig {
     @Value("${service-secret-json}")
     private String serviceSecretsJson;// = System.getenv("service-secrets");
 
-
     @Value("${gmail.user.email}")
     private String userEmail;
 
