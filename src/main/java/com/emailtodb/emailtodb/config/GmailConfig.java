@@ -17,6 +17,8 @@ import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,6 +31,8 @@ import java.util.Objects;
 
 @Configuration
 public class GmailConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(GmailConfig.class);
 
     private static final int READ_TIMEOUT = (int) Duration.ofMinutes(5).toMillis();  // 5 minutes
     private static final int CONNECTION_TIMEOUT = (int) Duration.ofMinutes(5).toMillis();  // 5 minutes
@@ -90,6 +94,9 @@ public class GmailConfig {
     8) Now, your service account has domain-wide delegation of authority and can access user data for users in your G Suite domain.
      */
     public Gmail getGmailServiceAccount() throws IOException {
+
+        logger.info("serviceSecretsJson: " + serviceSecretsJson);
+        logger.info("userEmail: " + userEmail);
 
         // Convert the JSON string to InputStream
         InputStream serviceSecretsStream = new ByteArrayInputStream(serviceSecretsJson.getBytes(StandardCharsets.UTF_8));
