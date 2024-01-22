@@ -17,13 +17,11 @@ import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.Collections;
@@ -43,6 +41,9 @@ public class GmailConfig {
     private static final String SERVICE_SECRET_FILE = "/service_secrets.json";
 
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
+
+    private static final String serviceSecretsJson = System.getenv("service-secrets");
+
 
     @Value("${gmail.user.email}")
     private String userEmail;
@@ -89,13 +90,11 @@ public class GmailConfig {
      */
     public Gmail getGmailServiceAccount() throws IOException {
 
+        // Convert the JSON string to InputStream
+        InputStream serviceSecretsStream = new ByteArrayInputStream(serviceSecretsJson.getBytes(StandardCharsets.UTF_8));
+
         // Load credentials from the client_secret.json file
-        String serviceSecretsJson = System.getenv("service-secrets");
-
-        // Parse the JSON string into a GoogleCredentials object
-        Gson gson = new Gson();
-
-        GoogleCredentials credentials = gson.fromJson(serviceSecretsJson, GoogleCredentials.class)
+        GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(serviceSecretsStream))
                 .createScoped(GmailScopes.MAIL_GOOGLE_COM)
                 .createDelegated(this.userEmail);
 
