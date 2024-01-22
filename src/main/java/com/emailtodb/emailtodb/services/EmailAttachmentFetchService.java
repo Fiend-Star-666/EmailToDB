@@ -32,6 +32,7 @@ public class EmailAttachmentFetchService {
     private static final Logger logger = LoggerFactory.getLogger(EmailAttachmentFetchService.class);
 
     private static final String UNKNOWN = "unknown";
+    private static final String USER_ID = "me";
 
 
     @Autowired
@@ -158,7 +159,7 @@ public class EmailAttachmentFetchService {
         MessagePartBody attachmentBody;
         if (part.getBody().getAttachmentId() != null) {
             attachmentBody = gmailConfig.getGmailServiceAccount().users().messages().attachments()
-                    .get("me", emailMessage.getMessageId(), part.getBody().getAttachmentId()).execute();
+                    .get(USER_ID, emailMessage.getMessageId(), part.getBody().getAttachmentId()).execute();
         } else {
             attachmentBody = part.getBody();
         }
