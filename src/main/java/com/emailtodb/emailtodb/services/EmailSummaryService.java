@@ -75,12 +75,22 @@ public class EmailSummaryService {
         return emailFetchService.fetchMessages(gmail);
     }
 
-    private String processMessages(List<Message> newMessages, int totalEmailsRead) {
+    private String processMessages(List<Message> newMessages, int totalEmailsRead) throws IOException {
 
         StringBuilder successSummary = new StringBuilder();
         StringBuilder failedSummary = new StringBuilder();
 
         for (Message message : newMessages) {
+
+            List<String> labelIds = emailLabelService.getLabelIdByName(USER_ID, PROCESSED_LABEL);
+
+            Set<String> labelIdsSet = new HashSet<>(labelIds);
+            Set<String> messageLabelIdsSet = new HashSet<>(message.getLabelIds());
+
+            if (messageLabelIdsSet.containsAll(labelIdsSet)) {
+                continue;
+            }
+
             totalEmailsRead++;
 
             EmailMessage emailMessage = emailSaveService.extractEmailMessageFromGmailMessage(message);
@@ -187,110 +197,3 @@ public class EmailSummaryService {
     }
 
 }
-
-
-    /*
-    public void fetchAndSaveEmailsConditionally() throws IOException {
-
-        StringBuilder summary = new StringBuilder();
-        StringBuilder successSummary = new StringBuilder();
-        StringBuilder failedSummary = new StringBuilder();
-
-        int totalEmailsRead = 0;
-        int totalEmailsAdded = 0;
-        int totalEmailsFailedToLoad = 0;
-
-        logger.info("Conditionally fetching and saving emails started");
-
-        summary.append(System.lineSeparator()).append("Email Processing Summary:").append(System.lineSeparator());
-
-        //In the context of the Gmail API, "me" is an alias for the authenticated user who is making the request
-        String userId = "me";
-
-        Optional<EmailMessage> latestEmail = emailMessageRepository.findTopByOrderByDateReceivedDesc();
-
-        Gmail gmail = gmailConfig.getGmailServiceAccount();
-
-        List<Message> newMessages = new ArrayList<>();
-
-        if (latestEmail.isPresent()) {
-
-            Date sinceDate = latestEmail.get().getDateReceived();
-
-            if (sinceDate != null) {
-                newMessages = emailFetchService.fetchMessagesSince(gmail, userId, sinceDate);
-            }
-
-        } else {
-            newMessages = emailFetchService.fetchMessages(gmail);
-        }
-
-        logger.info("Fetched " + newMessages.size() + " new messages");
-
-        if (newMessages.isEmpty()) {
-            logger.info("No new messages");
-            return;
-        }
-
-        for (Message message : newMessages) {
-
-            totalEmailsRead++;
-
-            EmailMessage emailMessage = emailSaveService.extractEmailMessageFromGmailMessage(message);
-
-            // Check if the "body" or the "From" field contains the string emailFilter
-            if (emailMessage.getBody().contains(emailFilter) || emailMessage.getFrom().contains(emailFilter)) {
-                totalEmailsAdded++;
-                try {
-
-                    emailSaveService.saveEmailMessageAndItsAttachmentsIfNotExists(message, emailMessage);
-
-                    emailLabelService.labelEmailAsProvidedLabel(userId, message.getId(), PROCESSED_LABEL);
-
-                    successSummary.append("Successfully Loaded the email with messageID: ").append(emailMessage.getMessageId()).append(System.lineSeparator()).
-                            append("Subject: ").append(emailMessage.getSubject()).append(System.lineSeparator()).append(System.lineSeparator()).append(System.lineSeparator());
-
-                    if (emailMessage.getEmailAttachments() != null && !emailMessage.getEmailAttachments().isEmpty())
-                        summary.append("Number of Email Attachments:").append(emailMessage.getEmailAttachments().size()).append(System.lineSeparator());
-
-                } catch (Exception e) {
-                    totalEmailsFailedToLoad++;
-                    logger.error("Error while saving email message and its attachments: " + e.getMessage());
-
-                    emailLabelService.labelEmailAsProvidedLabel(userId, message.getId(), FAILED_TO_PROCESS_LABEL);
-
-                    failedSummary.append(" Failed to Load the email with messageID: ").append(emailMessage.getMessageId()).append(System.lineSeparator())
-                            .append("Subject: ").append(emailMessage.getSubject()).append(System.lineSeparator()).append(System.lineSeparator()).append(System.lineSeparator());
-                }
-            }
-        }
-
-        summary.append("-------------------------------------").append(System.lineSeparator());
-        summary.append("Total emails read from Inbox: ").append(totalEmailsRead).append(System.lineSeparator());
-        summary.append("Total emails added to database after Filtering: ").append(totalEmailsAdded).append(System.lineSeparator());
-        summary.append("Total emails failed to load: ").append(totalEmailsFailedToLoad).append(System.lineSeparator());
-        summary.append("-------------------------------------").append(System.lineSeparator()).append(System.lineSeparator());
-
-        summary.append("Successful Emails Logs:").append(System.lineSeparator());
-
-        if (totalEmailsAdded == 0) {
-            summary.append("No emails added to database after Filtering").append(System.lineSeparator());
-        } else summary.append(successSummary).append(System.lineSeparator());
-
-        summary.append("------------------------").append(System.lineSeparator());
-
-
-        summary.append("Failed Emails Summary:").append(System.lineSeparator());
-        if (totalEmailsFailedToLoad == 0) {
-            summary.append("No failures in Loading Emails").append(System.lineSeparator());
-        } else summary.append(failedSummary).append(System.lineSeparator());
-
-        summary.append(System.lineSeparator()).append("------------------------").append(System.lineSeparator());
-
-        if(totalEmailsAdded > 0 || totalEmailsFailedToLoad > 0)
-            sendSummaryEmail(userId, summary.toString());
-
-        logger.info("Conditional fetching and saving emails completed");
-
-    }
-    */

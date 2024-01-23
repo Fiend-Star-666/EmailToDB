@@ -1,35 +1,30 @@
-//package com.emailtodb.emailtodb.services;
-//
-//import com.azure.storage.blob.BlobClient;
-//import com.azure.storage.blob.BlobContainerClient;
-//import com.azure.storage.blob.BlobServiceClient;
-//import com.azure.storage.blob.BlobServiceClientBuilder;
-//import org.springframework.beans.factory.annotation.Value;
-//import org.springframework.stereotype.Service;
-//
-//import java.nio.file.Path;
-//
-//@Service
-//public class AzureFileStorageService {
-//
-//    private final BlobServiceClient blobServiceClient;
-//    private final String containerName;
-//
-//    public AzureFileStorageService(@Value("${azure.storage.connection-string}") String connectionString,
-//                                   @Value("${azure.storage.container-name}") String containerName) {
-//        this.blobServiceClient = new BlobServiceClientBuilder()
-//                .connectionString(connectionString)
-//                .buildClient();
-//        this.containerName = containerName;
-//    }
-//
-//    public String uploadFile(Path filePath) {
-//        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
-//        String fileName = filePath.getFileName().toString();
-//        BlobClient blobClient = containerClient.getBlobClient(fileName);
-//
-//        blobClient.uploadFromFile(filePath.toString());
-//
-//        return blobClient.getBlobUrl();
-//    }
-//}
+package com.emailtodb.emailtodb.services;
+
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.emailtodb.emailtodb.config.AzureStorageConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.ByteArrayInputStream;
+import java.util.UUID;
+
+@Service
+public class AzureFileStorageService {
+
+    @Autowired
+    private AzureStorageConfig azureStorageConfig;
+
+    @Value("${azure.storage.container-name}")
+    private String containerName;
+
+    public String uploadFile(byte[] fileContent) {
+        BlobServiceClient blobServiceClient = azureStorageConfig.createBlobServiceClient();
+        String blobName = UUID.randomUUID().toString();
+        System.out.println("Container Name: " + containerName);
+        BlobClient blobClient = blobServiceClient.getBlobContainerClient(containerName).getBlobClient(blobName);
+        blobClient.upload(new ByteArrayInputStream(fileContent), fileContent.length);
+        return blobClient.getBlobUrl();
+    }
+}
