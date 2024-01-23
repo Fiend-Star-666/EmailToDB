@@ -50,7 +50,6 @@ public class AzureFileStorageService {
         } catch (Exception e) {
             logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
         }
-
         return null;
     }
 
