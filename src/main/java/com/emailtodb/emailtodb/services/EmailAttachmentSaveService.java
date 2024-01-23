@@ -29,8 +29,11 @@ public class EmailAttachmentSaveService {
     @Autowired
     private AzureFileStorageService azureFileStorageService;
 
+
     @Transactional
     public void saveEmailAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
+
+        //azureFileStorageService.createContainer();
 
         List<EmailAttachment> attachments = emailAttachmentFetchService.getAttachments(message, emailMessage);
 
@@ -42,7 +45,12 @@ public class EmailAttachmentSaveService {
             if (existingEmailAttachment.isEmpty()) {
                 try {
                     // Only save the attachment if it doesn't already exist
-                    String fileUrl = azureFileStorageService.uploadFile(attachment.getFileContent());
+
+                    azureFileStorageService.listAllContainers();
+
+                    // azureFileStorageService.listAllContainersSAS();
+
+                    String fileUrl = azureFileStorageService.uploadFile(attachment);
 
                     attachment.setFileLocation(fileUrl);
                 } catch (Exception e) {
