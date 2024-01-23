@@ -48,8 +48,6 @@ public class EmailAttachmentSaveService {
 
                     azureFileStorageService.listAllContainers();
 
-                    // azureFileStorageService.listAllContainersSAS();
-
                     String fileUrl = azureFileStorageService.uploadFile(attachment);
 
                     attachment.setFileLocation(fileUrl);
