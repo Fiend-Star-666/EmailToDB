@@ -18,25 +18,25 @@ public class EmailMessage {
     @Column(name = "messageId", nullable = false, unique = true)
     private String messageId;
 
-    @Column(name = "subject", nullable = false)
+    @Column(name = "subject", nullable = false, columnDefinition = "VARCHAR(MAX)")
     private String subject;
 
-    @Column(name = "email_from", nullable = false)
+    @Column(name = "email_from", nullable = false, columnDefinition = "VARCHAR(MAX)")
     private String from;
 
-    @Column(name = "email_to", nullable = false)
+    @Column(name = "email_to", nullable = false, columnDefinition = "VARCHAR(MAX)")
     private String to;
 
-    @Column(name = "cc")
+    @Column(name = "cc", columnDefinition = "VARCHAR(MAX)")
     private String cc;
 
-    @Column(name = "bcc")
+    @Column(name = "bcc", columnDefinition = "VARCHAR(MAX)")
     private String bcc;
 
     @Column(name = "dateReceived", nullable = false)
     private Date dateReceived;
 
-    @Column(name = "body", nullable = false, columnDefinition = "text")
+    @Column(name = "body", nullable = false, columnDefinition = "VARCHAR(MAX)")
     private String body;
 
     @OneToMany(mappedBy = "emailMessage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

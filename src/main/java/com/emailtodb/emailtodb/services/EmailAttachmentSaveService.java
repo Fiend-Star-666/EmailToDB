@@ -26,6 +26,9 @@ public class EmailAttachmentSaveService {
     @Autowired
     private EmailAttachmentFetchService emailAttachmentFetchService;
 
+    @Autowired
+    private AzureFileStorageService azureFileStorageService;
+
     @Transactional
     public void saveEmailAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
 
@@ -37,7 +40,15 @@ public class EmailAttachmentSaveService {
         for (EmailAttachment attachment : attachments) {
             Optional<EmailAttachment> existingEmailAttachment = emailAttachmentRepository.findByFileContentHash(attachment.getFileContentHash());
             if (existingEmailAttachment.isEmpty()) {
-                // Only save the attachment if it doesn't already exist
+                try {
+                    // Only save the attachment if it doesn't already exist
+                    String fileUrl = azureFileStorageService.uploadFile(attachment.getFileContent());
+
+                    attachment.setFileLocation(fileUrl);
+                } catch (Exception e) {
+                    logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
+                    return;
+                }
                 emailAttachmentRepository.save(attachment);
                 logger.info("Saved new email attachment with hash: " + attachment.getFileContentHash());
             } else {

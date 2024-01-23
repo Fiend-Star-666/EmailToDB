@@ -16,28 +16,27 @@ public class EmailFetchService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailFetchService.class);
 
+    private static final String USER_ID = "me";
 
     public List<Message> fetchMessages(Gmail service) {
         logger.info("Fetching messages started");
 
         List<Message> messages = new ArrayList<>();
         try {
-            // Define the user (typically 'me' for the authenticated user)
-            String user = "me";
 
             if (service == null) {
                 logger.error("Gmail service is null");
                 return messages;
             }
 
-            ListMessagesResponse messageResponse = service.users().messages().list(user).setLabelIds(Collections.singletonList("INBOX")).execute();
+            ListMessagesResponse messageResponse = service.users().messages().list(USER_ID).setLabelIds(Collections.singletonList("INBOX")).execute();
 
             List<Message> messageIds = messageResponse.getMessages();
 
             if (messageIds != null) {
                 for (Message messageId : messageIds) {
                     // Fetch the full message using the ID
-                    Message message = service.users().messages().get(user, messageId.getId()).execute();
+                    Message message = service.users().messages().get(USER_ID, messageId.getId()).execute();
                     messages.add(message);
                 }
             }

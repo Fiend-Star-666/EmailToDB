@@ -13,7 +13,10 @@ import com.google.auth.oauth2.GoogleCredentials;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -23,6 +26,9 @@ public class DriveConfig {
     private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
 
     private static final String SERVICE_SECRET_FILE = "/service_secrets.json";
+
+    @Value("${service-secret-json}")
+    private String serviceSecretsJson;
 
     @Value("${gmail.user.email}")
     private String userEmail;
@@ -44,9 +50,11 @@ public class DriveConfig {
      */
     public Drive getDriveServiceAccount() throws IOException {
 
+        // Convert the JSON string to InputStream
+        InputStream serviceSecretsStream = new ByteArrayInputStream(serviceSecretsJson.getBytes(StandardCharsets.UTF_8));
 
         // Load credentials from the client_secret.json file
-        GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(DriveConfig.class.getResourceAsStream(SERVICE_SECRET_FILE)))
+        GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(serviceSecretsStream))
                 .createScoped(DriveScopes.all())
                 //.createScoped(DriveScopes.DRIVE_READONLY)
                 .createDelegated(this.userEmail); // replace with the user you want to impersonate;

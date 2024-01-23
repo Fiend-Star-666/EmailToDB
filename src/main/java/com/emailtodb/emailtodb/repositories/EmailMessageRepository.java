@@ -10,4 +10,5 @@ public interface EmailMessageRepository extends JpaRepository<EmailMessage, Long
     Optional<EmailMessage> findTopByOrderByDateReceivedDesc();
     Optional<EmailMessage> findByMessageId(String id);
 
+    boolean existsByMessageId(String messageId);
 }

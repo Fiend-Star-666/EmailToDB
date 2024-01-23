@@ -17,6 +17,8 @@ public class EmailLabelService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailLabelService.class);
 
+    private static final String USER_ID = "me";
+
     private final GmailConfig gmailConfig;
 
     @Autowired
@@ -39,7 +41,7 @@ public class EmailLabelService {
     public void labelEmailAsProvidedLabel(String userId, String messageId, String labelIds) throws IOException {
         logger.info("Labeling email as processed");
         try {
-            List<String> labelIdsList = getLabelIdByName("me", labelIds);
+            List<String> labelIdsList = getLabelIdByName(USER_ID, labelIds);
 
             if (labelIdsList.isEmpty()) {
                 logger.error("Label not found");
