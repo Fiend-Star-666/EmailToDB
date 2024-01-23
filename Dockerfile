@@ -41,4 +41,3 @@ EXPOSE 9091
 
 # Set the entry point to run the jar
 ENTRYPOINT ["java","-jar","EmailToDb.jar"]
-
