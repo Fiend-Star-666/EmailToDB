@@ -18,6 +18,8 @@ public class EmailLabelService {
     private static final Logger logger = LoggerFactory.getLogger(EmailLabelService.class);
 
     private static final String USER_ID = "me";
+    private static final String PROCESSED_LABEL = "Processed";
+    private static final String FAILED_TO_PROCESS_LABEL = "FailedToProcess";
 
     private final GmailConfig gmailConfig;
 
@@ -38,17 +40,22 @@ public class EmailLabelService {
     }
 
     // label the email
-    public void labelEmailAsProvidedLabel(String userId, String messageId, String labelIds) throws IOException {
-        logger.info("Labeling email as processed");
+    public void labelEmailAsProvidedLabel(String userId, String messageId, String labelName) throws IOException {
+        logger.info("Labeling email as provided label: {}", labelName);
         try {
-            List<String> labelIdsList = getLabelIdByName(USER_ID, labelIds);
+            List<String> labelIdsList = getLabelIdByName(USER_ID, labelName);
 
             if (labelIdsList.isEmpty()) {
                 logger.error("Label not found");
                 return;
             }
 
-            ModifyMessageRequest mods = new ModifyMessageRequest().setAddLabelIds(labelIdsList);
+            // Determine the label to remove
+            String labelToRemove = labelName.equals(PROCESSED_LABEL) ? FAILED_TO_PROCESS_LABEL : PROCESSED_LABEL;
+
+            List<String> removeLabelIdsList = getLabelIdByName(USER_ID, labelToRemove);
+
+            ModifyMessageRequest mods = new ModifyMessageRequest().setAddLabelIds(labelIdsList).setRemoveLabelIds(removeLabelIdsList);
             gmailConfig.getGmailServiceAccount().users().messages().modify(userId, messageId, mods).execute();
         } catch (Exception e) {
             logger.error("Error labeling email: {}", e.getMessage());
