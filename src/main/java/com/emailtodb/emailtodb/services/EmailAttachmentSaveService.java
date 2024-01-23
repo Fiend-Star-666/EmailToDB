@@ -29,7 +29,6 @@ public class EmailAttachmentSaveService {
     @Autowired
     private AzureFileStorageService azureFileStorageService;
 
-
     @Transactional
     public void saveEmailAttachmentsIfNotExists(Message message, EmailMessage emailMessage) throws NoSuchAlgorithmException, IOException {
 
