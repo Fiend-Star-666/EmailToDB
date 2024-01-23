@@ -48,11 +48,14 @@ public class EmailAttachmentSaveService {
 
                     azureFileStorageService.listAllContainers();
 
-                    // azureFileStorageService.listAllContainersSAS();
-
                     String fileUrl = azureFileStorageService.uploadFile(attachment);
-
-                    attachment.setFileLocation(fileUrl);
+                    if(fileUrl != null) {
+                        attachment.setFileLocation(fileUrl);
+                    }
+                    else {
+                        logger.error("Error uploading file to Azure Blob Storage: " + attachment.getFileContentHash());
+                        throw new RuntimeException("Error uploading file to Azure Blob Storage: " + attachment.getFileContentHash());
+                    }
                 } catch (Exception e) {
                     logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
                     return;

@@ -4,8 +4,9 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobContainerItem;
+import com.azure.storage.blob.models.BlobErrorCode;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.emailtodb.emailtodb.config.AzureStorageConfig;
-//import com.emailtodb.emailtodb.config.SaSTokensGeneration;
 import com.emailtodb.emailtodb.entities.EmailAttachment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,11 +29,6 @@ public class AzureFileStorageService {
     @Value("${azure.storage.container-name}")
     private String containerName;
 
-
-//    @Autowired
-//    private SaSTokensGeneration saSTokensGeneration;
-
-
     public String uploadFile(EmailAttachment attachment) {
         BlobServiceClient blobServiceClient = azureStorageConfig.createBlobServiceClient();
 
@@ -43,6 +39,14 @@ public class AzureFileStorageService {
         try {
             blobClient.upload(new ByteArrayInputStream(attachment.getFileContent()), attachment.getFileContent().length);
             return blobClient.getBlobUrl();
+        } catch (BlobStorageException e) {
+            if (e.getStatusCode() == 409 && e.getErrorCode().equals(BlobErrorCode.BLOB_ALREADY_EXISTS)) {
+                // Log the error and continue
+                logger.warn("Blob already exists: " + attachment.getFileName());
+                return blobClient.getBlobUrl();
+            }
+            logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
+
         } catch (Exception e) {
             logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
         }
@@ -57,20 +61,6 @@ public class AzureFileStorageService {
         }
         logger.info("Containers: " + containerNames);
     }
-
-//    public void listAllContainersSAS() {
-//        String sasToken = saSTokensGeneration.generateSasToken(containerName);
-//        logger.info("SAS Token: " + sasToken);
-//        BlobServiceClient blobServiceClient = azureStorageConfig.createBlobServiceClient();
-//
-//        List<String> containerNames = new ArrayList<>();
-//
-//        for (BlobContainerItem blobContainerItem : blobServiceClient.listBlobContainers()) {
-//            containerNames.add(blobContainerItem.getName());
-//        }
-//
-//        logger.info("Containers SAS: " + containerNames);
-//    }
 
     public void deleteContainer() {
 
