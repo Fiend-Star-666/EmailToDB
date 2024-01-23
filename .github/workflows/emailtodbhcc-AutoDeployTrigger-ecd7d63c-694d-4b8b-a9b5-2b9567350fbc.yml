@@ -35,7 +35,7 @@ jobs:
           registryPassword: ${{ secrets.EMAILTODBHCC_REGISTRY_PASSWORD }}
           containerAppName: emailtodbhcc
           resourceGroup: testMani
-          imageToBuild: fiendstar/fiendstar/email-to-db:${{ github.sha }}
+          imageToBuild: fiendstar/email-to-db:${{ github.sha }}
           
             
 
