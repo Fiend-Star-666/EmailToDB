@@ -50,7 +50,6 @@ public class GmailConfig {
     @Value("${gmail.user.email}")
     private String userEmail;
 
-
     /*
     To delegate domain-wide authority to your service account, follow these steps:
     1) Go to your Google Admin console at admin.google.com. Note: You must be an administrator of the G Suite domain to access the Admin console.
