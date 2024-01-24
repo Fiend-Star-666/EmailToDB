@@ -27,6 +27,9 @@ public class EmailAttachment {
     @Transient  // This annotation makes fileContent non-persistent
     private byte[] fileContent;
 
+    @Column(name = "file_url", nullable = false, columnDefinition = "VARCHAR(MAX)")
+    private String fileUrl;
+
     @Column(name = "file_location", nullable = false, columnDefinition = "VARCHAR(MAX)")
     private String fileLocation;
 

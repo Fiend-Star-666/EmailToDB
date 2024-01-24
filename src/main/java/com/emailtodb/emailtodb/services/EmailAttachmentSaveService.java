@@ -43,23 +43,23 @@ public class EmailAttachmentSaveService {
             Optional<EmailAttachment> existingEmailAttachment = emailAttachmentRepository.findByFileContentHash(attachment.getFileContentHash());
             if (existingEmailAttachment.isEmpty()) {
                 try {
+
                     // Only save the attachment if it doesn't already exist
 
-                    azureFileStorageService.listAllContainers();
+                    EmailAttachment uploadedAttachment = azureFileStorageService.uploadFile(attachment);
 
-                    String fileUrl = azureFileStorageService.uploadFile(attachment);
-                    if(fileUrl != null) {
-                        attachment.setFileLocation(fileUrl);
-                    }
-                    else {
-                        logger.error("Error uploading file to Azure Blob Storage: " + attachment.getFileContentHash());
+                    if (uploadedAttachment != null) {
+                        logger.info("Saving new email attachment with hash: " + attachment.getFileContentHash());
+                        emailAttachmentRepository.save(attachment);
+                    } else {
+                        logger.error("Error uploading file to Azure Blob Storage");
                         throw new RuntimeException("Error uploading file to Azure Blob Storage: " + attachment.getFileContentHash());
                     }
+
                 } catch (Exception e) {
                     logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
                     return;
                 }
-                emailAttachmentRepository.save(attachment);
                 logger.info("Saved new email attachment with hash: " + attachment.getFileContentHash());
             } else {
                 logger.info("Attachment with hash " + attachment.getFileContentHash() + " already exists, skipping save.");
