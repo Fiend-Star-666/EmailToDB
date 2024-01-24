@@ -36,8 +36,10 @@ public class GmailConfig {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
 
+    // Oauth2 way with user consent
     private static final String CLIENT_SECRET_FILE = "/client_secrets.json";
 
+    // Service account way with a file
     private static final String SERVICE_SECRET_FILE = "/service_secrets.json";
 
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
@@ -47,6 +49,44 @@ public class GmailConfig {
 
     @Value("${gmail.user.email}")
     private String userEmail;
+
+
+    /*
+    To delegate domain-wide authority to your service account, follow these steps:
+    1) Go to your Google Admin console at admin.google.com. Note: You must be an administrator of the G Suite domain to access the Admin console.
+    2) From the Admin console Home page, go to Security > API controls.
+    3) In the Domain wide delegation pane, select Manage Domain Wide Delegation.
+    4) Click Add new.
+    5)In the Client ID field, enter the client ID obtained from your service account JSON key file.
+    6) In the OAuth Scopes field, enter the scopes for the APIs that the service account should access. For the Gmail API, you can use https://mail.google.com/.
+    7) Click Authorize.
+    8) Now, your service account has domain-wide delegation of authority and can access user data for users in your G Suite domain.
+     */
+    public Gmail getGmailServiceAccount() throws IOException {
+
+        // Json String from the service_secret.json file
+        // Convert the JSON string to InputStream
+        InputStream serviceSecretsStream = new ByteArrayInputStream(serviceSecretsJson.getBytes(StandardCharsets.UTF_8));
+
+        // Load credentials from the client_secret.json file
+        GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(serviceSecretsStream))
+                .createScoped(GmailScopes.MAIL_GOOGLE_COM)
+                .createDelegated(this.userEmail);
+
+        HttpRequestInitializer httpRequestInitializer = new HttpCredentialsAdapter(credentials) {
+            @Override
+            public void initialize(HttpRequest httpRequest) throws IOException {
+                super.initialize(httpRequest);
+                httpRequest.setReadTimeout(READ_TIMEOUT);
+                httpRequest.setConnectTimeout(CONNECTION_TIMEOUT);
+            }
+        };
+
+        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, httpRequestInitializer)
+                .setApplicationName("Email to DB Application")
+                .build();
+
+    }
 
     //Oauth2 way with user consent
     public static Gmail getGmailClientAccount() throws IOException, GeneralSecurityException {
@@ -77,40 +117,5 @@ public class GmailConfig {
         return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("user");
     }
 
-    /*
-    To delegate domain-wide authority to your service account, follow these steps:
-    1) Go to your Google Admin console at admin.google.com. Note: You must be an administrator of the G Suite domain to access the Admin console.
-    2) From the Admin console Home page, go to Security > API controls.
-    3) In the Domain wide delegation pane, select Manage Domain Wide Delegation.
-    4) Click Add new.
-    5)In the Client ID field, enter the client ID obtained from your service account JSON key file.
-    6) In the OAuth Scopes field, enter the scopes for the APIs that the service account should access. For the Gmail API, you can use https://mail.google.com/.
-    7) Click Authorize.
-    8) Now, your service account has domain-wide delegation of authority and can access user data for users in your G Suite domain.
-     */
-    public Gmail getGmailServiceAccount() throws IOException {
-
-        // Convert the JSON string to InputStream
-        InputStream serviceSecretsStream = new ByteArrayInputStream(serviceSecretsJson.getBytes(StandardCharsets.UTF_8));
-
-        // Load credentials from the client_secret.json file
-        GoogleCredentials credentials = GoogleCredentials.fromStream(Objects.requireNonNull(serviceSecretsStream))
-                .createScoped(GmailScopes.MAIL_GOOGLE_COM)
-                .createDelegated(this.userEmail);
-
-        HttpRequestInitializer httpRequestInitializer = new HttpCredentialsAdapter(credentials) {
-            @Override
-            public void initialize(HttpRequest httpRequest) throws IOException {
-                super.initialize(httpRequest);
-                httpRequest.setReadTimeout(READ_TIMEOUT);
-                httpRequest.setConnectTimeout(CONNECTION_TIMEOUT);
-            }
-        };
-
-        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, httpRequestInitializer)
-                .setApplicationName("Email to DB Application")
-                .build();
-
-    }
 
 }
