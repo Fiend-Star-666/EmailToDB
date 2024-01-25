@@ -45,7 +45,7 @@ public class MessagePartProcessingService {
     }
 
     public String getBody(MessagePart part) {
-        if (part.getMimeType().equals("text/plain") || part.getMimeType().equals("text/html")) {
+        if ("text/plain".equals(part.getMimeType()) || "text/html".equals(part.getMimeType())) {
             return new String(Base64.decodeBase64(part.getBody().getData()));
         }
         if (part.getParts() != null) {

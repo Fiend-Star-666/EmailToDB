@@ -40,10 +40,10 @@ public class EmailFetchService {
                     messages.add(message);
                 }
             }
-            logger.info("Fetched " + messages.size() + " messages");
+            logger.info("Fetched {} messages", messages.size());
 
         } catch (IOException e) {
-            logger.error("An error occurred: " + e);
+            logger.error("An error occurred: {}", e.getMessage());
         }
 
         logger.info("Fetching messages completed");
@@ -52,7 +52,7 @@ public class EmailFetchService {
 
     public List<Message> fetchMessagesSince(Gmail service, String userId, Date sinceDate) throws IOException {
 
-        logger.info("Fetching messages since " + sinceDate);
+        logger.info("Fetching messages since {}", sinceDate);
 
         SimpleDateFormat gmailDateFormat = new SimpleDateFormat("yyyy/MM/dd");
         gmailDateFormat.setTimeZone(TimeZone.getTimeZone("GMT")); // Gmail uses GMT

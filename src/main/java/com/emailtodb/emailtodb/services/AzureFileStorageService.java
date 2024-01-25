@@ -10,7 +10,6 @@ import com.emailtodb.emailtodb.config.AzureStorageConfig;
 import com.emailtodb.emailtodb.entities.EmailAttachment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,16 +25,21 @@ public class AzureFileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(AzureFileStorageService.class);
 
-    @Autowired
-    private AzureStorageConfig azureStorageConfig;
+    private final BlobServiceClient blobServiceClient;
+    private final BlobContainerClient containerClient;
 
     @Value("${azure.storage.container-name}")
     private String containerName;
 
-    public EmailAttachment uploadFile(EmailAttachment attachment) {
+    public AzureFileStorageService(AzureStorageConfig azureStorageConfig, @Value("${azure.storage.container-name}") String containerName) {
+        this.blobServiceClient = azureStorageConfig.createBlobServiceClient();
+        logger.info("Azure Blob Storage Service initialized");
+        logger.info("Container name: {}", containerName);
+        this.containerClient = blobServiceClient.getBlobContainerClient(containerName);
+    }
 
-        BlobServiceClient blobServiceClient = azureStorageConfig.createBlobServiceClient();
-        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+
+    public EmailAttachment uploadFile(EmailAttachment attachment) throws BlobStorageException {
 
         // Generate the blob name
         String blobName = generateBlobName(attachment);
@@ -44,24 +48,22 @@ public class AzureFileStorageService {
 
         try {
             blobClient.upload(new ByteArrayInputStream(attachment.getFileContent()), attachment.getFileContent().length);
-            logger.info("blobName" + blobClient.getBlobName());
             attachment.setFileUrl(blobClient.getBlobUrl());
             attachment.setFileLocation(blobClient.getBlobName());
             return attachment;
         } catch (BlobStorageException e) {
             if (e.getStatusCode() == 409 && e.getErrorCode().equals(BlobErrorCode.BLOB_ALREADY_EXISTS)) {
-                // Log the error and continue
-                logger.warn("Blob already exists: " + attachment.getFileName());
+                logger.warn("Blob already exists: {}", attachment.getFileName());
                 attachment.setFileUrl(blobClient.getBlobUrl());
                 attachment.setFileLocation(blobClient.getBlobName());
                 return attachment;
             }
-            logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
-        } catch (Exception e) {
-            logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
+            logger.error("Error uploading file to Azure Blob Storage: {}", e.getMessage());
+            throw e;
         }
-        return null;
     }
+
+
 
     private String generateBlobName(EmailAttachment attachment) {
         // Create a Locale object for USA
@@ -84,30 +86,25 @@ public class AzureFileStorageService {
     }
 
     public void listAllContainers() {
-        BlobServiceClient blobServiceClient = azureStorageConfig.createBlobServiceClient();
         List<String> containerNames = new ArrayList<>();
         for (BlobContainerItem blobContainerItem : blobServiceClient.listBlobContainers()) {
             containerNames.add(blobContainerItem.getName());
         }
-        logger.info("Containers: " + containerNames);
+        logger.info("Containers: {}", containerNames);
     }
 
     public void deleteContainer() {
-
-        BlobServiceClient blobServiceClient = azureStorageConfig.createBlobServiceClient();
-
         blobServiceClient.deleteBlobContainer(containerName);
-        logger.info("Container deleted: " + containerName);
+        logger.info("Container deleted: {}", containerName);
     }
 
     public void createContainer() {
-        BlobServiceClient blobServiceClient = azureStorageConfig.createBlobServiceClient();
         BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
         if (!containerClient.exists()) {
             blobServiceClient.createBlobContainer(containerName);
-            logger.info("Container created: " + containerName);
+            logger.info("Container created: {}", containerName);
         } else {
-            logger.info("Container already exists: " + containerName);
+            logger.info("Container already exists: {}", containerName);
         }
     }
 

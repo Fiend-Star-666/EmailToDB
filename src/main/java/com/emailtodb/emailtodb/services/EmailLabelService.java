@@ -6,7 +6,6 @@ import com.google.api.services.gmail.model.ListLabelsResponse;
 import com.google.api.services.gmail.model.ModifyMessageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -23,7 +22,6 @@ public class EmailLabelService {
 
     private final GmailConfig gmailConfig;
 
-    @Autowired
     public EmailLabelService(GmailConfig gmailConfig) {
         this.gmailConfig = gmailConfig;
     }

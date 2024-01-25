@@ -8,4 +8,3 @@ import java.util.Optional;
 public interface EmailAttachmentRepository extends JpaRepository<EmailAttachment, Long> {
     Optional<EmailAttachment> findByFileContentHash(String fileContentHash);
 }
-

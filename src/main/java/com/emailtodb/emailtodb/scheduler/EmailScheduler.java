@@ -27,28 +27,12 @@ public class EmailScheduler {
                 logger.info("Fetched and saved emails successfully");
                 break; // If successful, break the loop
             } catch (Exception e) {
-                logger.error("Attempt " + (i + 1) + ": Error occurred while fetching and saving emails: " + e);
+                logger.error("Attempt {}: Error occurred while fetching and saving emails: {}", (i + 1), e.getMessage());
                 if (i == 4) {
                     logger.error("Failed to fetch and save emails after 5 attempts", e);
                 }
             }
         }
     }
-
-    /*
-    @Autowired
-    private FileDownloadService fileDownloadService;
-
-    //Runs every 12 hours, with delay of 5 minutes after application start up (to allow for email fetching)
-    @Scheduled(fixedDelay = 12 * 60 * 1000 * 60, initialDelay = 1000 * 60 * 5)
-    public void savingEmailAttachmentsRegularly() {
-        try {
-            fileDownloadService.downloadAllFiles("output");
-            logger.info("Fetched and saved attachments successfully");
-        } catch (Exception e) {
-            logger.error("Error occurred while fetching and saving attachments: " + e.getMessage());
-        }
-    }
-    */
 
 }

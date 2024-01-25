@@ -106,8 +106,8 @@ public class EmailAttachmentFetchService {
 
         // Extract and set file extension, if available
         int lastDotIndex = fullFileName.lastIndexOf('.');
-        String fileExtension = (lastDotIndex > 0 && lastDotIndex < fullFileName.length() - 1) ?
-                fullFileName.substring(lastDotIndex + 1) : "";
+        String fileExtension = lastDotIndex > 0 && lastDotIndex < fullFileName.length() - 1
+                ? fullFileName.substring(lastDotIndex + 1) : "";
         attachment.setFileExtension(fileExtension);
 
         // Download the file content
@@ -168,7 +168,7 @@ public class EmailAttachmentFetchService {
 
     private String determineFileName(MessagePart part) {
         String fileName = part.getFilename();
-        return (fileName != null && !fileName.isEmpty()) ? decode(fileName, StandardCharsets.UTF_8) : UNKNOWN;
+        return fileName != null && !fileName.isEmpty() ? decode(fileName, StandardCharsets.UTF_8) : UNKNOWN;
     }
 
     private String determineFileExtension(MessagePart part) {
@@ -177,7 +177,7 @@ public class EmailAttachmentFetchService {
         if (lastDotIndex > 0 && lastDotIndex < decodedFileName.length() - 1) {
             return decodedFileName.substring(lastDotIndex + 1);
         } else {
-            logger.warn("No file extension found for filename: " + decodedFileName);
+            logger.warn("No file extension found for filename: {}", decodedFileName);
             return UNKNOWN;
         }
     }
@@ -191,7 +191,7 @@ public class EmailAttachmentFetchService {
     public String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
+            sb.append("%02x".formatted(b));
         }
         return sb.toString();
     }
