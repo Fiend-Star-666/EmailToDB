@@ -177,7 +177,7 @@ public class EmailAttachmentFetchService {
         if (lastDotIndex > 0 && lastDotIndex < decodedFileName.length() - 1) {
             return decodedFileName.substring(lastDotIndex + 1);
         } else {
-            logger.warn("No file extension found for filename: " + decodedFileName);
+            logger.warn("No file extension found for filename: {}", decodedFileName);
             return UNKNOWN;
         }
     }

@@ -33,23 +33,27 @@ public class EmailSaveService {
         Optional<EmailMessage> existingEmailMessage = emailMessageRepository.findByMessageId(emailMessage.getMessageId());
 
         if (existingEmailMessage.isPresent()) {
-            logger.info("Email message with ID " + emailMessage.getMessageId() + " already exists");
+            logger.info("Email message with ID {} already exists", emailMessage.getMessageId());
             return;
         }
 
         try {
+
             emailMessageRepository.save(emailMessage);
             logger.info("Saved email message");
 
             try {
                 emailAttachmentSaveService.saveEmailAttachmentsIfNotExists(message, emailMessage);
             } catch (Exception e) {
-                logger.error("Error while saving email attachments: " + e.getMessage());
+                logger.error("Error while saving email attachments: {}", e.getMessage());
+                logger.error("Rolling back transaction");
+                emailMessageRepository.delete(emailMessage);
+                logger.info("Deleted rolled Back email message");
                 // Transaction will be rolled back, no need to manually delete the email message due to Transactional annotation
             }
 
         } catch (Exception e) {
-            logger.error("Error while saving email message and its attachments: " + e.getMessage());
+            logger.error("Error while saving email message and its attachments: {}", e.getMessage());
         }
 
     }
@@ -91,7 +95,7 @@ public class EmailSaveService {
                     try {
                         dateSent = parser.parse(header.getValue());
                     } catch (ParseException e) {
-                        logger.error("Error parsing date: " + e.getMessage());
+                        logger.error("Error parsing date: {}", e.getMessage());
                     }
                     break;
             }

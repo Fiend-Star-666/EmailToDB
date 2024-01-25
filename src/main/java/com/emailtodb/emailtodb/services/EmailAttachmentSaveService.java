@@ -36,7 +36,7 @@ public class EmailAttachmentSaveService {
 
         List<EmailAttachment> attachments = emailAttachmentFetchService.getAttachments(message, emailMessage);
 
-        logger.info("emailMessage attachments: " + attachments.size());
+        logger.info("emailMessage attachments: {}", attachments.size());
 
         // Inside saveEmailAttachmentsIfNotExists method
         for (EmailAttachment attachment : attachments) {
@@ -45,11 +45,10 @@ public class EmailAttachmentSaveService {
                 try {
 
                     // Only save the attachment if it doesn't already exist
-
                     EmailAttachment uploadedAttachment = azureFileStorageService.uploadFile(attachment);
 
                     if (uploadedAttachment != null) {
-                        logger.info("Saving new email attachment with hash: " + attachment.getFileContentHash());
+                        logger.info("Saving new email attachment with hash: {}", attachment.getFileContentHash());
                         emailAttachmentRepository.save(attachment);
                     } else {
                         logger.error("Error uploading file to Azure Blob Storage");
@@ -57,12 +56,12 @@ public class EmailAttachmentSaveService {
                     }
 
                 } catch (Exception e) {
-                    logger.error("Error uploading file to Azure Blob Storage: " + e.getMessage());
+                    logger.error("Error uploading file to Azure Blob Storage: {}", e.getMessage());
                     return;
                 }
-                logger.info("Saved new email attachment with hash: " + attachment.getFileContentHash());
+                logger.info("Saved new email attachment with hash: {}", attachment.getFileContentHash());
             } else {
-                logger.info("Attachment with hash " + attachment.getFileContentHash() + " already exists, skipping save.");
+                logger.info("Attachment with hash {} already exists, skipping save.", attachment.getFileContentHash());
             }
         }
     }

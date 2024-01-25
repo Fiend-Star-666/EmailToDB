@@ -4,6 +4,7 @@ import com.emailtodb.emailtodb.config.GmailConfig;
 import com.emailtodb.emailtodb.entities.EmailMessage;
 import com.emailtodb.emailtodb.repositories.EmailMessageRepository;
 import com.google.api.services.gmail.Gmail;
+import com.google.api.services.gmail.model.ListMessagesResponse;
 import com.google.api.services.gmail.model.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,22 +47,42 @@ public class EmailSummaryService {
 
     private int totalEmailsAdded;
     private int totalEmailsFailedToLoad;
+    private int totalEmailsRead;
 
     public void fetchAndSaveEmailsConditionally() throws IOException {
 
         logger.info("Conditionally fetching and saving emails started");
 
-        int totalEmailsRead = 0;
+        totalEmailsRead = 0;
         totalEmailsAdded = 0;
         totalEmailsFailedToLoad = 0;
 
-        Optional<EmailMessage> latestEmail = emailMessageRepository.findTopByOrderByDateReceivedDesc();
-        List<Message> newMessages = fetchNewMessages(latestEmail);
-        String summary = processMessages(newMessages, totalEmailsRead);
-        sendSummaryEmailIfNecessary(summary);
+        processAllEmails();
 
         logger.info("Conditional fetching and saving emails completed");
 
+    }
+
+    public void processAllEmails() throws IOException {
+
+        // Fetch unprocessed messages
+        Gmail gmail = gmailConfig.getGmailServiceAccount();
+        List<Message> unprocessedMessages = fetchUnprocessedMessages(gmail);
+
+        // Fetch new messages
+        Optional<EmailMessage> latestEmail = emailMessageRepository.findTopByOrderByDateReceivedDesc();
+        List<Message> newMessages = fetchNewMessages(latestEmail);
+
+        // Combine unprocessed messages and new messages
+        List<Message> allMessages = new ArrayList<>();
+        allMessages.addAll(unprocessedMessages);
+        allMessages.addAll(newMessages);
+
+        // Process all messages
+        String combinedSummary = processMessages(allMessages, totalEmailsRead);
+
+        // Send summary email if necessary
+        sendSummaryEmailIfNecessary(combinedSummary);
     }
 
     private List<Message> fetchNewMessages(Optional<EmailMessage> latestEmail) throws IOException {
@@ -95,36 +116,43 @@ public class EmailSummaryService {
 
             EmailMessage emailMessage = emailSaveService.extractEmailMessageFromGmailMessage(message);
 
-            try {
-                if (emailMessageRepository.existsByMessageId(emailMessage.getMessageId())) {
-                    logger.info("Email message with ID {} already exists", emailMessage.getMessageId());
-                } else {
-                    if (emailMessage.getBody().contains(emailFilter) || emailMessage.getFrom().contains(emailFilter)) {
-                        emailSaveService.saveEmailMessageAndItsAttachmentsIfNotExists(message, emailMessage);
-                        totalEmailsAdded++;
-                        successSummary.append("Successfully Loaded the email with messageID: ").append(emailMessage.getMessageId())
-                                .append(System.lineSeparator()).append("Subject: ").append(emailMessage.getSubject())
-                                .append(System.lineSeparator()).append(System.lineSeparator()).append(System.lineSeparator());
-                        if (emailMessage.getEmailAttachments() != null && !emailMessage.getEmailAttachments().isEmpty()) {
-                            successSummary.append("Number of Email Attachments:").append(emailMessage.getEmailAttachments().size()).append(System.lineSeparator());
+            int retryCount = 0;
+            while (retryCount < 3) {
+                try {
+                    if (emailMessageRepository.existsByMessageId(emailMessage.getMessageId())) {
+                        logger.info("Email message with ID {} already exists", emailMessage.getMessageId());
+                    } else {
+                        if (emailMessage.getBody().contains(emailFilter) || emailMessage.getFrom().contains(emailFilter)) {
+                            emailSaveService.saveEmailMessageAndItsAttachmentsIfNotExists(message, emailMessage);
+                            totalEmailsAdded++;
+                            successSummary.append("Successfully Loaded the email with messageID: ").append(emailMessage.getMessageId())
+                                    .append(System.lineSeparator()).append("Subject: ").append(emailMessage.getSubject())
+                                    .append(System.lineSeparator()).append(System.lineSeparator()).append(System.lineSeparator());
+                            if (emailMessage.getEmailAttachments() != null && !emailMessage.getEmailAttachments().isEmpty()) {
+                                successSummary.append("Number of Email Attachments:").append(emailMessage.getEmailAttachments().size()).append(System.lineSeparator());
+                            }
                         }
                     }
-                }
 
-                emailLabelService.labelEmailAsProvidedLabel(USER_ID, message.getId(), PROCESSED_LABEL);
+                    emailLabelService.labelEmailAsProvidedLabel(USER_ID, message.getId(), PROCESSED_LABEL);
+                    break;  // Break out of the while loop
 
-            } catch (Exception e) {
-                totalEmailsFailedToLoad++;
-                logger.error("Error while saving email message and its attachments: " + e.getMessage());
-                failedSummary.append(" Failed to Load the email with messageID: ").append(emailMessage.getMessageId())
-                        .append(System.lineSeparator()).append("Subject: ").append(emailMessage.getSubject())
-                        .append(System.lineSeparator()).append(System.lineSeparator()).append(System.lineSeparator());
+                } catch (Exception e) {
+                    retryCount++;
+                    if (retryCount >= 3) {
+                        totalEmailsFailedToLoad++;
+                        logger.error("Error while saving email message and its attachments: {}", e.getMessage());
+                        failedSummary.append(" Failed to Load the email with messageID: ").append(emailMessage.getMessageId())
+                                .append(System.lineSeparator()).append("Subject: ").append(emailMessage.getSubject())
+                                .append(System.lineSeparator()).append(System.lineSeparator()).append(System.lineSeparator());
 
-                // Label the email as failed to process
-                try {
-                    emailLabelService.labelEmailAsProvidedLabel(USER_ID, message.getId(), FAILED_TO_PROCESS_LABEL);
-                } catch (IOException ioException) {
-                    logger.error("Error while labeling email as failed to process: " + ioException.getMessage());
+                        // Label the email as failed to process
+                        try {
+                            emailLabelService.labelEmailAsProvidedLabel(USER_ID, message.getId(), FAILED_TO_PROCESS_LABEL);
+                        } catch (IOException ioException) {
+                            logger.error("Error while labeling email as failed to process: {}", ioException.getMessage());
+                        }
+                    }
                 }
             }
         }
@@ -157,10 +185,34 @@ public class EmailSummaryService {
         return summary.toString();
     }
 
+    private List<Message> fetchUnprocessedMessages(Gmail service) throws IOException {
+
+        logger.info("Fetching unprocessed messages...");
+
+        List<String> labelIds = emailLabelService.getLabelIdByName(USER_ID, FAILED_TO_PROCESS_LABEL);
+        ListMessagesResponse response = service.users().messages().list(USER_ID).setLabelIds(labelIds).execute();
+
+        List<Message> messages = new ArrayList<>();
+        while (response.getMessages() != null) {
+            for (Message message : response.getMessages()) {
+                messages.add(service.users().messages().get(USER_ID, message.getId()).execute());
+            }
+            if (response.getNextPageToken() != null) {
+                String pageToken = response.getNextPageToken();
+                response = service.users().messages().list(USER_ID).setPageToken(pageToken).execute();
+            } else {
+                break;
+            }
+        }
+
+        logger.info("Finished fetching unprocessed messages.");
+        return messages;
+    }
+
     private void sendSummaryEmailIfNecessary(String summary) throws IOException {
         if (!summary.isEmpty() && (totalEmailsAdded > 0 || totalEmailsFailedToLoad > 0)) {
             sendSummaryEmail(summary);
-        }else{
+        } else {
             logger.info("No summary email sent as there were no new emails");
         }
     }
