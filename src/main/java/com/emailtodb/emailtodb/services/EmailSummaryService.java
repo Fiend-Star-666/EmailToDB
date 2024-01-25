@@ -44,8 +44,8 @@ public class EmailSummaryService {
     @Value("${gmail.user.email.summary.cc}")
     private List<String> ccEmails;
 
-    private int totalEmailsAdded = 0;
-    private int totalEmailsFailedToLoad = 0;
+    private int totalEmailsAdded;
+    private int totalEmailsFailedToLoad;
 
     public void fetchAndSaveEmailsConditionally() throws IOException {
 
@@ -105,8 +105,9 @@ public class EmailSummaryService {
                         successSummary.append("Successfully Loaded the email with messageID: ").append(emailMessage.getMessageId())
                                 .append(System.lineSeparator()).append("Subject: ").append(emailMessage.getSubject())
                                 .append(System.lineSeparator()).append(System.lineSeparator()).append(System.lineSeparator());
-                        if (emailMessage.getEmailAttachments() != null && !emailMessage.getEmailAttachments().isEmpty())
+                        if (emailMessage.getEmailAttachments() != null && !emailMessage.getEmailAttachments().isEmpty()) {
                             successSummary.append("Number of Email Attachments:").append(emailMessage.getEmailAttachments().size()).append(System.lineSeparator());
+                        }
                     }
                 }
 
@@ -138,14 +139,18 @@ public class EmailSummaryService {
         summary.append("Successful Emails Logs:").append(System.lineSeparator());
         if (totalEmailsAdded == 0) {
             summary.append("No emails added to database after Filtering").append(System.lineSeparator());
-        } else summary.append(successSummary).append(System.lineSeparator());
+        } else {
+            summary.append(successSummary).append(System.lineSeparator());
+        }
 
         summary.append("------------------------").append(System.lineSeparator());
 
         summary.append("Failed Emails Summary:").append(System.lineSeparator());
         if (totalEmailsFailedToLoad == 0) {
             summary.append("No failures in Loading Emails").append(System.lineSeparator());
-        } else summary.append(failedSummary).append(System.lineSeparator());
+        } else {
+            summary.append(failedSummary).append(System.lineSeparator());
+        }
 
         summary.append(System.lineSeparator()).append("------------------------").append(System.lineSeparator());
 
@@ -187,7 +192,7 @@ public class EmailSummaryService {
         String cc = String.join(", ", ccEmails);
         String to = String.join(", ", toEmails);
 
-        String emailContent = String.format("From: %s%nTo: %s%nCc: %s%nSubject: %s%n%n%s", userEmail, to, cc, subject, bodyText);
+        String emailContent = "From: %s%nTo: %s%nCc: %s%nSubject: %s%n%n%s".formatted(userEmail, to, cc, subject, bodyText);
 
         byte[] emailBytes = emailContent.getBytes(StandardCharsets.UTF_8);
         String encodedEmail = Base64.getEncoder().encodeToString(emailBytes);
