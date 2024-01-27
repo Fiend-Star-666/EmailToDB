@@ -48,7 +48,7 @@ public class MessagePartProcessingService {
         return fileIds;
     }
 
-    public String getBody(MessagePart part) {
+    public String getbriefBody(MessagePart part) {
         if ("text/plain".equals(part.getMimeType()) || "text/html".equals(part.getMimeType())) {
             String body = new String(Base64.decodeBase64(part.getBody().getData()));
 
@@ -58,9 +58,24 @@ public class MessagePartProcessingService {
             Matcher matcher = pattern.matcher(body);
 
             if (matcher.find()) {
-                // Extract the specific part of the email body
-                return matcher.group(1);
+                // 2 is there due to a custom regex String
+                return matcher.group(2);
             }
+        }
+        if (part.getParts() != null) {
+            for (MessagePart nestedPart : part.getParts()) {
+                String body = getbriefBody(nestedPart);
+                if (body != null) {
+                    return body;
+                }
+            }
+        }
+        return null;
+    }
+
+    public String getBody(MessagePart part) {
+        if ("text/plain".equals(part.getMimeType()) || "text/html".equals(part.getMimeType())) {
+            return new String(Base64.decodeBase64(part.getBody().getData()));
         }
         if (part.getParts() != null) {
             for (MessagePart nestedPart : part.getParts()) {
@@ -72,4 +87,5 @@ public class MessagePartProcessingService {
         }
         return null;
     }
+
 }

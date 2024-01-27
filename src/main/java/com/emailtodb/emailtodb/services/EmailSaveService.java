@@ -107,6 +107,11 @@ public class EmailSaveService {
             body = "";
         }
 
+        String briefBody = messagePartProcessingService.getbriefBody(message.getPayload());
+        if (briefBody == null) {
+            briefBody = "";
+        }
+
         // Setting properties for emailMessage from the extracted message object
         emailMessage.setMessageId(message.getId());
         emailMessage.setSubject(subject);
@@ -116,6 +121,7 @@ public class EmailSaveService {
         emailMessage.setBcc(bcc);
         emailMessage.setDateReceived(dateSent);
         emailMessage.setBody(body);
+        emailMessage.setBriefBody(briefBody.replace(">", "").trim());
 
         logger.info("Extracted email message details");
 
