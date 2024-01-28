@@ -4,6 +4,7 @@ import com.google.api.services.gmail.model.MessagePart;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -15,6 +16,9 @@ import java.util.regex.Pattern;
 public class MessagePartProcessingService {
 
     private static final Logger logger = LoggerFactory.getLogger(MessagePartProcessingService.class);
+
+    @Value("${email.body.regex.filter}")
+    private String bodyRegexFilter;
 
     public List<String> getGoogleDriveFileIdsIfLink(MessagePart part) {
 
@@ -44,6 +48,31 @@ public class MessagePartProcessingService {
         return fileIds;
     }
 
+    public String getbriefBody(MessagePart part) {
+        if ("text/plain".equals(part.getMimeType()) || "text/html".equals(part.getMimeType())) {
+            String body = new String(Base64.decodeBase64(part.getBody().getData()));
+
+            // Regex to match the specific part of the email body
+            String regex = bodyRegexFilter;
+            Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
+            Matcher matcher = pattern.matcher(body);
+
+            if (matcher.find()) {
+                // 2 is there due to a custom regex String
+                return matcher.group(2);
+            }
+        }
+        if (part.getParts() != null) {
+            for (MessagePart nestedPart : part.getParts()) {
+                String body = getbriefBody(nestedPart);
+                if (body != null) {
+                    return body;
+                }
+            }
+        }
+        return null;
+    }
+
     public String getBody(MessagePart part) {
         if ("text/plain".equals(part.getMimeType()) || "text/html".equals(part.getMimeType())) {
             return new String(Base64.decodeBase64(part.getBody().getData()));
@@ -58,4 +87,5 @@ public class MessagePartProcessingService {
         }
         return null;
     }
+
 }

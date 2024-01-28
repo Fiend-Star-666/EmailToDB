@@ -53,7 +53,7 @@ public class AzureFileStorageService {
             return attachment;
         } catch (BlobStorageException e) {
             if (e.getStatusCode() == 409 && e.getErrorCode().equals(BlobErrorCode.BLOB_ALREADY_EXISTS)) {
-                logger.warn("Blob already exists: {}", attachment.getFileName());
+                logger.warn("Blob already exists: {}", attachment.getFileContentHash());
                 attachment.setFileUrl(blobClient.getBlobUrl());
                 attachment.setFileLocation(blobClient.getBlobName());
                 return attachment;
