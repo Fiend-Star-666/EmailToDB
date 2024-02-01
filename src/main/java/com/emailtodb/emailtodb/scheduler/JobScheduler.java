@@ -49,14 +49,15 @@ public class JobScheduler {
         }
     }
 
-    @Retryable(maxAttempts = 5, value = Exception.class, backoff = @Backoff(delay = 30 * 1000))
+    @Retryable(maxAttempts = 5, backoff = @Backoff(delay = 30 * 1000))
     private void fetchAndProcessEmails() throws IOException {
         emailService.fetchAndSaveEmailsConditionally();
         logger.info("Fetched and saved emails successfully");
     }
 
-    @Retryable(maxAttempts = 5, backoff = @Backoff(delay = 30 * 1000), value = Exception.class)
+    @Retryable(maxAttempts = 5, backoff = @Backoff(delay = 30 * 1000))
     private void migrateDataToFinalTables() {
+        logger.info("Migrating data to final tables");
         dataMigrationService.migrateGuidanceData();
         logger.info("Migrated data successfully");
     }

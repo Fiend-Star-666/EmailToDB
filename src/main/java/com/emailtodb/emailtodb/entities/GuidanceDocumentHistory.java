@@ -14,11 +14,11 @@ public class GuidanceDocumentHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int DocumentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "GuidanceId", nullable = false)
     private Guidance guidance;
 
-    @Column(length = 200)
+    //@Column(length = 200)
     private String DocumentURL;
     private Date CreatedDate;
     private int CreatedBy;

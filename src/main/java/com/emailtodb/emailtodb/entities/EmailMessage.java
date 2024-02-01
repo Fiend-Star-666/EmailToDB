@@ -42,6 +42,6 @@ public class EmailMessage {
     @Column(name = "brief_body", nullable = false, columnDefinition = "VARCHAR(MAX)")
     private String briefBody;
 
-    @OneToMany(mappedBy = "emailMessage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "emailMessage", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<EmailAttachment> emailAttachments;
 }

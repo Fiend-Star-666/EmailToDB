@@ -47,7 +47,7 @@ public class Guidance {
     @Column(length = 5)
     private String AdditionalGroup;
 
-    @OneToMany(mappedBy = "guidance", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "guidance", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<GuidanceDocumentHistory> guidanceDocumentHistory;
 
     public void setDateAdded(Date dateAdded) {
