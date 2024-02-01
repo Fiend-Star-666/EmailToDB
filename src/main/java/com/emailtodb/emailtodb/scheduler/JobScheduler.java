@@ -5,10 +5,13 @@ import com.emailtodb.emailtodb.services.EmailSummaryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Component
@@ -16,10 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class JobScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(JobScheduler.class);
-
-    // Lock to prevent multiple instances of the same job from running concurrently
     private final ReentrantLock lock = new ReentrantLock();
-
 
     @Autowired
     private EmailSummaryService emailService;
@@ -27,62 +27,37 @@ public class JobScheduler {
     @Autowired
     private DataMigrationService dataMigrationService;
 
-    //@Scheduled(cron = "0 0 */12 * * *") // Runs every 12 hours, adjust as needed
-    @Scheduled(fixedDelay = 12 * 60 * 60 * 1000, initialDelay = 90 * 1000)
-    // Runs every 12 hours, with delay of 1 minute after application start up (to allow for email fetching)
-    public void fetchEmailsRegularlyAndMigrateData() {
+    @Scheduled(fixedDelay = 12 * 60 * 60 * 1000, initialDelay = 60 * 1000) // 60 seconds delay
+    public void fetchEmailsRegularly() throws IOException {
         if (lock.tryLock()) {
             try {
-
-                for (int i = 0; i < 5; i++) {
-                    try {
-                        emailService.fetchAndSaveEmailsConditionally();
-                        logger.info("Fetched and saved emails successfully");
-                        try {
-                            logger.info("Migrating data to final tables");
-                            migrateDataToFinalTables();
-                            logger.info("Migrated data to final tables successfully");
-                            break; // If successful, break the loop
-                        }
-                        catch (Exception e) {
-                            logger.error("Error occurred while migrating data to final tables: {}", e.getMessage());
-                        }
-                        break; // If successful, break the loop
-                    } catch (Exception e) {
-                        logger.error("Attempt {}: Error occurred while fetching and saving emails: {}", (i + 1), e.getMessage());
-                        if (i == 4) {
-                            logger.error("Failed to fetch and save emails after 5 attempts", e);
-                        }
-                    }
-                }
+                fetchAndProcessEmails();
+                regularlyMigrateData(); // Call regularlyMigrateData() after fetchAndProcessEmails() completes successfully
             } finally {
                 lock.unlock();
             }
         }
     }
 
-    //@Scheduled(cron = "0 0 */10 * * *") // Runs every 10 hours, adjust as needed
-    @Scheduled(fixedDelay = 12 * 60 * 60 * 1000, initialDelay = 90 * 1000)
-    public void migrateDataToFinalTables() {
+    public void regularlyMigrateData() {
         if (lock.tryLock()) {
             try {
-                // Fetch data from the staging tables
-                // Process the data and insert it into the Guidance and GuidanceDocumentHistory tables
-                for (int i = 0; i < 5; i++) {
-                    try {
-                        dataMigrationService.migrateGuidanceData();
-                        logger.info("Migrated data successfully");
-                        break; // If successful, break the loop
-                    } catch (Exception e) {
-                        logger.error("Attempt {}: Error occurred while migrating data: {}", (i + 1), e.getMessage());
-                        if (i == 4) {
-                            logger.error("Failed to migrate data after 5 attempts", e);
-                        }
-                    }
-                }
+                migrateDataToFinalTables();
             } finally {
                 lock.unlock();
             }
         }
+    }
+
+    @Retryable(maxAttempts = 5, value = Exception.class, backoff = @Backoff(delay = 30 * 1000))
+    private void fetchAndProcessEmails() throws IOException {
+        emailService.fetchAndSaveEmailsConditionally();
+        logger.info("Fetched and saved emails successfully");
+    }
+
+    @Retryable(maxAttempts = 5, backoff = @Backoff(delay = 30 * 1000), value = Exception.class)
+    private void migrateDataToFinalTables() {
+        dataMigrationService.migrateGuidanceData();
+        logger.info("Migrated data successfully");
     }
 }
