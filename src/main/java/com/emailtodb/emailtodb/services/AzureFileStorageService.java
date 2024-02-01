@@ -42,7 +42,7 @@ public class AzureFileStorageService {
     public EmailAttachment uploadFile(EmailAttachment attachment) throws BlobStorageException {
 
         // Generate the blob name
-        String blobName = generateBlobName(attachment);
+        String blobName = generateBlobNameStaging(attachment);
 
         BlobClient blobClient = containerClient.getBlobClient(blobName);
 
@@ -65,7 +65,7 @@ public class AzureFileStorageService {
 
 
 
-    private String generateBlobName(EmailAttachment attachment) {
+    private String generateBlobNameStaging(EmailAttachment attachment) {
         // Create a Locale object for USA
         Locale locale = new Locale("en", "US");
 
@@ -82,7 +82,7 @@ public class AzureFileStorageService {
         String datePath = dateFormat.format(attachment.getEmailMessage().getDateReceived());
 
         // Combine the date path, email ID and file name to create the blob name
-        return String.format("%s/%s/%s", datePath, attachment.getEmailMessage().getMessageId(), attachment.getFileName());
+        return String.format("staging/%s/%s/%s", datePath, attachment.getEmailMessage().getMessageId(), attachment.getFileName());
     }
 
     public void listAllContainers() {
