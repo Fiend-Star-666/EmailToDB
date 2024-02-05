@@ -8,6 +8,8 @@ import com.azure.storage.blob.models.BlobErrorCode;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.emailtodb.emailtodb.config.AzureStorageConfig;
 import com.emailtodb.emailtodb.entities.EmailAttachment;
+import com.emailtodb.emailtodb.entities.Guidance;
+import com.emailtodb.emailtodb.entities.GuidanceDocumentHistory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,7 +65,33 @@ public class AzureFileStorageService {
         }
     }
 
+    public String copyMigratedFile(EmailAttachment attachment, GuidanceDocumentHistory guidanceDocumentHistory) {
 
+        String sourceBlobLocation = attachment.getFileLocation();
+
+        BlobClient sourceBlobClient = containerClient.getBlobClient(sourceBlobLocation);
+
+        String destinationBlobName = generateMigratedBlobName(attachment.getFileName(), guidanceDocumentHistory);
+
+        BlobClient destinationBlobClient = containerClient.getBlobClient(destinationBlobName);
+
+        if (sourceBlobClient.exists()) {
+            String sourceBlobUrl = sourceBlobClient.getBlobUrl();
+            try {
+                destinationBlobClient.copyFromUrl(sourceBlobUrl);
+            } catch (BlobStorageException e) {
+                if (e.getStatusCode() == 409 && e.getErrorCode().equals(BlobErrorCode.BLOB_ALREADY_EXISTS)) {
+                    logger.warn("Blob already exists in Migrated Location: {}", attachment.getFileContentHash());
+                }
+                logger.error("Error copying file to Azure Blob Storage: {}", e.getMessage());
+                throw e;
+            }
+            return destinationBlobClient.getBlobName();
+        } else {
+            logger.warn("Source blob does not exist: {}", sourceBlobLocation);
+        }
+        return "";
+    }
 
     private String generateBlobNameStaging(EmailAttachment attachment) {
         // Create a Locale object for USA
@@ -83,6 +111,11 @@ public class AzureFileStorageService {
 
         // Combine the date path, email ID and file name to create the blob name
         return String.format("staging/%s/%s/%s", datePath, attachment.getEmailMessage().getMessageId(), attachment.getFileName());
+    }
+
+    private String generateMigratedBlobName(String fileName, GuidanceDocumentHistory guidanceDocumentHistory) {
+        Guidance guidance = guidanceDocumentHistory.getGuidance();
+        return String.format("Uploads/%d/GDS/%d/Guidance%d/%s", guidance.getCompanyId(), guidance.getGuidanceId(), guidance.getGuidanceId(), fileName);
     }
 
     public void listAllContainers() {
@@ -107,5 +140,6 @@ public class AzureFileStorageService {
             logger.info("Container already exists: {}", containerName);
         }
     }
+
 
 }

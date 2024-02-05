@@ -44,4 +44,10 @@ public class EmailMessage {
 
     @OneToMany(mappedBy = "emailMessage", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<EmailAttachment> emailAttachments;
+
+    @Column(name = "status_upload_staging", nullable = false)
+    private boolean statusUploadStaging = false;
+
+    @Column(name = "status_migrate", nullable = false)
+    private boolean statusMigrate = false;
 }

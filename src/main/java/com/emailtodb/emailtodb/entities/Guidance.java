@@ -18,24 +18,34 @@ public class Guidance {
 
     @Column(length = Integer.MAX_VALUE)
     private String Name; // maps to EmailSubject
+
     private Date DateAdded;
 
     @Column(length = Integer.MAX_VALUE)
     private String Description; //maps to EmailBriefBody if not empty otherwise it maps to EmailBody
+
+    @Column(nullable = true)
     private short SourceId = 14; // constant
+
     private short GuidanceStatusID = 1; // constant
+
     @Column(nullable = true)
     private short ProgressId;
+
     private short ResponseTypeId = 2; // constant
+
     private Date DueDateOverride; // 8 business days from DateAdded
 
     @Column(length = Integer.MAX_VALUE)
     private String Comments;
+
     private Date CreatedDate;
 
     @Column(nullable = true)
     private int CreatedBy;
+
     private Date UpdatedDate;
+
     @Column(nullable = true)
     private int UpdatedBy;
 
@@ -44,9 +54,13 @@ public class Guidance {
 
     @Column(length = 5)
     private String ExpectedGuidance;
+
     private Date CompletedDate;
+
     @Column(nullable = true)
     private int CompletedBy;
+
+    @Column(nullable = true)
     private int CompanyId = 10; // constant
 
     @Column(length = 5)

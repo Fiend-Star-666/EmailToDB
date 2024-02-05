@@ -18,10 +18,14 @@ public class GuidanceDocumentHistory {
     @JoinColumn(name = "GuidanceId", nullable = false)
     private Guidance guidance;
 
-    //@Column(length = 200)
     private String DocumentURL;
+
     private Date CreatedDate;
+
     private int CreatedBy;
+
     private Date UpdatedDate;
+
+    @Column(nullable = true)
     private int UpdatedBy;
 }

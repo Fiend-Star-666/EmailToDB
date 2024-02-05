@@ -38,7 +38,7 @@ public class EmailSaveService {
         }
 
         try {
-
+            emailMessage.setStatusUploadStaging(true);
             emailMessageRepository.save(emailMessage);
             logger.info("Saved email message");
 
