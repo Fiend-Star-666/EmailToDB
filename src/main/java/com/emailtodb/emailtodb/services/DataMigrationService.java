@@ -4,7 +4,6 @@ import com.emailtodb.emailtodb.entities.EmailAttachment;
 import com.emailtodb.emailtodb.entities.EmailMessage;
 import com.emailtodb.emailtodb.entities.Guidance;
 import com.emailtodb.emailtodb.entities.GuidanceDocumentHistory;
-import com.emailtodb.emailtodb.repositories.EmailAttachmentRepository;
 import com.emailtodb.emailtodb.repositories.EmailMessageRepository;
 import com.emailtodb.emailtodb.repositories.GuidanceDocumentHistoryRepository;
 import com.emailtodb.emailtodb.repositories.GuidanceRepository;
@@ -92,8 +91,9 @@ public class DataMigrationService {
 
         if (fileURL.isEmpty()) {
             logger.warn("File URL is empty");
-        } else
+        } else {
             guidanceDocumentHistory.setDocumentURL(fileURL);
+        }
 
         guidanceDocumentHistory.setCreatedDate(new Date()); // Set the current date as the created date
         guidanceDocumentHistory.setCreatedBy(1); // Set the created by user id. Adjust this according to your requirements

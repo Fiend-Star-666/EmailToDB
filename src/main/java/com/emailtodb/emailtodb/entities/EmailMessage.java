@@ -46,8 +46,8 @@ public class EmailMessage {
     private List<EmailAttachment> emailAttachments;
 
     @Column(name = "status_upload_staging", nullable = false)
-    private boolean statusUploadStaging = false;
+    private boolean statusUploadStaging;
 
     @Column(name = "status_migrate", nullable = false)
-    private boolean statusMigrate = false;
+    private boolean statusMigrate;
 }
