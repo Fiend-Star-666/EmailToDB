@@ -9,7 +9,6 @@ import com.emailtodb.emailtodb.repositories.GuidanceDocumentHistoryRepository;
 import com.emailtodb.emailtodb.repositories.GuidanceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -21,20 +20,23 @@ public class DataMigrationService {
 
     private static final Logger logger = LoggerFactory.getLogger(DataMigrationService.class);
 
-    @Autowired
-    private EmailMessageRepository emailMessageRepository;
+    private final EmailMessageRepository emailMessageRepository;
+    private final GuidanceRepository guidanceRepository;
+    private final GuidanceDocumentHistoryRepository guidanceDocumentHistoryRepository;
+    private final AzureFileStorageService azureFileStorageService;
 
-    @Autowired
-    private GuidanceRepository guidanceRepository;
-
-    @Autowired
-    private GuidanceDocumentHistoryRepository guidanceDocumentHistoryRepository;
-
-    @Autowired
-    private AzureFileStorageService azureFileStorageService;
+    public DataMigrationService(EmailMessageRepository emailMessageRepository,
+                                GuidanceRepository guidanceRepository,
+                                GuidanceDocumentHistoryRepository guidanceDocumentHistoryRepository,
+                                AzureFileStorageService azureFileStorageService) {
+        this.emailMessageRepository = emailMessageRepository;
+        this.guidanceRepository = guidanceRepository;
+        this.guidanceDocumentHistoryRepository = guidanceDocumentHistoryRepository;
+        this.azureFileStorageService = azureFileStorageService;
+    }
 
     public void migrateGuidanceData() {
-
+        logger.info("Starting data migration");
         Optional<List<EmailMessage>> emailMessages = emailMessageRepository.findByStatusMigrateAndStatusUploadStaging(false, true);
 
         if (emailMessages.isPresent()) {
@@ -53,7 +55,7 @@ public class DataMigrationService {
         } else {
             logger.info("No email messages to migrate");
         }
-
+        logger.info("Data migration completed");
     }
 
     private void insertIntoGuidanceAndUpdateEmailStatus(Guidance guidance, EmailMessage emailMessage) {
