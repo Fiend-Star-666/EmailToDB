@@ -35,6 +35,9 @@ public class DataMigrationService {
     @Autowired
     private GuidanceDocumentHistoryRepository guidanceDocumentHistoryRepository;
 
+    @Autowired
+    private FileMigrationService fileMigrationService;
+
     public void migrateData() {
 
         // Fetch data from the staging tables
@@ -55,6 +58,9 @@ public class DataMigrationService {
             GuidanceDocumentHistory guidanceDocumentHistory = processEmailAttachment(emailAttachment);
             insertIntoGuidanceDocumentHistory(guidanceDocumentHistory);
         }
+
+//        fileMigrationService.migrateFiles();
+
     }
 
     // Implement these methods based on your specific requirements
@@ -105,6 +111,8 @@ public class DataMigrationService {
                 insertIntoGuidanceDocumentHistory(guidanceDocumentHistory);
             }
         }
+
+//        fileMigrationService.migrateFiles();
     }
 
     private GuidanceDocumentHistory convertEmailAttachmentToGuidanceDocumentHistory(EmailAttachment emailAttachment, Guidance guidance) {

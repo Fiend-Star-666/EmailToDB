@@ -24,6 +24,7 @@ public class Guidance {
     private String Description; //maps to EmailBriefBody if not empty otherwise it maps to EmailBody
     private short SourceId = 14; // constant
     private short GuidanceStatusID = 1; // constant
+    @Column(nullable = true)
     private short ProgressId;
     private short ResponseTypeId = 2; // constant
     private Date DueDateOverride; // 8 business days from DateAdded
@@ -31,8 +32,11 @@ public class Guidance {
     @Column(length = Integer.MAX_VALUE)
     private String Comments;
     private Date CreatedDate;
+
+    @Column(nullable = true)
     private int CreatedBy;
     private Date UpdatedDate;
+    @Column(nullable = true)
     private int UpdatedBy;
 
     @Column(length = 10)
@@ -41,6 +45,7 @@ public class Guidance {
     @Column(length = 5)
     private String ExpectedGuidance;
     private Date CompletedDate;
+    @Column(nullable = true)
     private int CompletedBy;
     private int CompanyId = 10; // constant
 
