@@ -42,6 +42,12 @@ public class EmailMessage {
     @Column(name = "brief_body", nullable = false, columnDefinition = "VARCHAR(MAX)")
     private String briefBody;
 
-    @OneToMany(mappedBy = "emailMessage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "emailMessage", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<EmailAttachment> emailAttachments;
+
+    @Column(name = "status_upload_staging", nullable = false)
+    private boolean statusUploadStaging;
+
+    @Column(name = "status_migrate", nullable = false)
+    private boolean statusMigrate;
 }
