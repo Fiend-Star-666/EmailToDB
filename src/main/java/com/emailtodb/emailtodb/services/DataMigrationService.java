@@ -52,10 +52,10 @@ public class DataMigrationService {
                     insertIntoGuidanceDocumentHistory(guidanceDocumentHistory);
                 }
             }
+            logger.info("Data migration completed");
         } else {
             logger.info("No email messages to migrate");
         }
-        logger.info("Data migration completed");
     }
 
     private void insertIntoGuidanceAndUpdateEmailStatus(Guidance guidance, EmailMessage emailMessage) {
