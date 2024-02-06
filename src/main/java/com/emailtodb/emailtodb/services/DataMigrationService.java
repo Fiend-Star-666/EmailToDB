@@ -40,6 +40,10 @@ public class DataMigrationService {
         Optional<List<EmailMessage>> emailMessages = emailMessageRepository.findByStatusMigrateAndStatusUploadStaging(false, true);
 
         if (emailMessages.isPresent()) {
+            if (emailMessages.get().isEmpty()) {
+                logger.info("No email messages to migrate");
+                return;
+            }
             for (EmailMessage emailMessage : emailMessages.get()) {
                 Guidance guidance = convertEmailToGuidance(emailMessage);
                 emailMessage.setStatusMigrate(true);
