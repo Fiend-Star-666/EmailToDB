@@ -20,6 +20,7 @@ public class GuidanceDocumentHistory {
 
     private String DocumentURL;
 
+    @Column(nullable = true)
     private Date CreatedDate;
 
     private int CreatedBy;

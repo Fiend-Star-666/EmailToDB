@@ -39,6 +39,7 @@ public class Guidance {
     @Column(length = Integer.MAX_VALUE)
     private String Comments;
 
+    @Column(nullable = true)
     private Date CreatedDate;
 
     @Column(nullable = true)
