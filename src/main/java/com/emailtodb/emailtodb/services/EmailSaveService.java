@@ -107,14 +107,22 @@ public class EmailSaveService {
             body = "";
         }
 
-        String briefBody = messagePartProcessingService.getbriefBody(message.getPayload());
+        String briefBody = messagePartProcessingService.fetchBriefBody(message.getPayload());
         if (briefBody == null) {
             briefBody = "";
         }
 
         // Setting properties for emailMessage from the extracted message object
         emailMessage.setMessageId(message.getId());
-        emailMessage.setSubject(subject);
+
+        // Regular expression to match "Fwd:" or "Re:" (case-insensitive) at the beginning of the string
+        String regex = "^(?i)((Fwd:|Re:|Fw:)\\s*)+";
+
+        // Replace the matched patterns with an empty string
+        subject = subject.replaceAll(regex, "");
+
+        emailMessage.setSubject(subject); // Set the modified subject
+
         emailMessage.setFrom(from);
         emailMessage.setTo(to);
         emailMessage.setCc(cc);

@@ -23,7 +23,7 @@ public class GuidanceDocumentHistory {
     @Column(nullable = true)
     private Date CreatedDate;
 
-    private int CreatedBy;
+    private int CreatedBy = 1;
 
     private Date UpdatedDate;
 

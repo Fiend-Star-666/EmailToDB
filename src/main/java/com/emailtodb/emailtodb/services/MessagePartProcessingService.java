@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,29 +49,58 @@ public class MessagePartProcessingService {
         return fileIds;
     }
 
-    public String getbriefBody(MessagePart part) {
+    public String fetchBriefBody(MessagePart part) {
         if ("text/plain".equals(part.getMimeType()) || "text/html".equals(part.getMimeType())) {
             String body = new String(Base64.decodeBase64(part.getBody().getData()));
 
             // Regex to match the specific part of the email body
             String regex = bodyRegexFilter;
+
             Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(body);
 
             if (matcher.find()) {
+
                 // 2 is there due to a custom regex String
-                return matcher.group(2);
+                String briefBody = matcher.group(2);
+
+                String[] lines = briefBody.split("\n"); // Split the string into lines
+
+                int startIdx = getStartIndex(lines);
+
+                // Reconstruct the string starting from the determined line
+                briefBody = String.join("\n", Arrays.copyOfRange(lines, startIdx, lines.length));
+
+                return briefBody;
             }
         }
         if (part.getParts() != null) {
             for (MessagePart nestedPart : part.getParts()) {
-                String body = getbriefBody(nestedPart);
+                String body = fetchBriefBody(nestedPart);
                 if (body != null) {
                     return body;
                 }
             }
         }
         return null;
+    }
+
+    private static int getStartIndex(String[] lines) {
+        int startIdx = 0;
+
+        // Check for an empty line; this will be our new starting point
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].trim().isEmpty()) {
+                startIdx = i + 1; // Start from the line after the empty line
+                break;
+            }
+        }
+
+        // If the first line contains "Subject:", start from the second line
+        if (startIdx == 0 && lines.length > 0 && lines[0].contains("Subject:")) {
+            startIdx = 1;
+        }
+        return startIdx;
     }
 
     public String getBody(MessagePart part) {

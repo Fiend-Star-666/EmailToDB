@@ -43,7 +43,7 @@ public class Guidance {
     private Date CreatedDate;
 
     @Column(nullable = true)
-    private int CreatedBy;
+    private int CreatedBy = 1;
 
     private Date UpdatedDate;
 

@@ -100,7 +100,6 @@ public class DataMigrationService {
         }
 
         guidanceDocumentHistory.setCreatedDate(new Date()); // Set the current date as the created date
-        guidanceDocumentHistory.setCreatedBy(1); // Set the created by user id. Adjust this according to your requirements
 
         guidanceDocumentHistory.setCreatedDate(new Date()); // Set the current date as the updated date
         return guidanceDocumentHistory;
