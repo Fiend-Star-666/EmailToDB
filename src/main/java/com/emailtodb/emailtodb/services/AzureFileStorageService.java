@@ -115,7 +115,8 @@ public class AzureFileStorageService {
 
     private String generateMigratedBlobName(String fileName, GuidanceDocumentHistory guidanceDocumentHistory) {
         Guidance guidance = guidanceDocumentHistory.getGuidance();
-        return String.format("Uploads/%d/GDS/%d/Guidance%d/%s", guidance.getCompanyId(), guidance.getGuidanceId(), guidance.getGuidanceId(), fileName);
+        //1 is the userId OF The system
+        return String.format("Uploads/%d/GDS/%d/Guidance%d/%s", guidance.getCompanyId(), 1, guidance.getGuidanceId(), fileName);
     }
 
     public void listAllContainers() {
