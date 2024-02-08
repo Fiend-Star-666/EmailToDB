@@ -38,3 +38,6 @@ build/
 /tokens/
 /test
 /src/main/resources/output/
+/.azure/default/connections.xml
+/.azure/profiles.xml
+/.azure/

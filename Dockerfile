@@ -33,8 +33,6 @@ ENV emailFilter=${EMAIL_FILTER}
 ENV emailUser=${EMAIL_USER}
 ENV emailSummaryCC=${EMAIL_SUMMARY_CC}
 ENV emailSummaryTo=${EMAIL_SUMMARY_TO}
-#ENV azureStorageConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
-#ENV azureStorageContainerName=${AZURE_STORAGE_CONTAINER_NAME}
 
 # Expose ports
 EXPOSE 9091
