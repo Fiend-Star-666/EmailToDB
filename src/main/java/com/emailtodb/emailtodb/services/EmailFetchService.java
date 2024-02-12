@@ -54,10 +54,21 @@ public class EmailFetchService {
 
         logger.info("Fetching messages since {}", sinceDate);
 
+        // Create a Calendar object with the sinceDate in "America/New_York" timezone
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/New_York"));
+        cal.setTime(sinceDate);
+
+        // Change the timezone of the Calendar object to GMT
+        cal.setTimeZone(TimeZone.getTimeZone("GMT"));
+
+        // Get the sinceDate in GMT
+        Date sinceDateInGMT = cal.getTime();
+
         SimpleDateFormat gmailDateFormat = new SimpleDateFormat("yyyy/MM/dd");
         gmailDateFormat.setTimeZone(TimeZone.getTimeZone("GMT")); // Gmail uses GMT
 
-        String query = "after:" + gmailDateFormat.format(sinceDate);
+        String query = "after:" + gmailDateFormat.format(sinceDateInGMT);
+
         ListMessagesResponse response = service.users().messages().list(userId).setQ(query).setLabelIds(Collections.singletonList("INBOX")).execute();
 
         List<Message> messages = new ArrayList<>();

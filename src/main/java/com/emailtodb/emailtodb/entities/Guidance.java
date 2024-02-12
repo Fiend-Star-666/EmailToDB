@@ -3,9 +3,10 @@ package com.emailtodb.emailtodb.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.TimeZone;
 
 @Data
 @Entity
@@ -71,8 +72,20 @@ public class Guidance {
     private List<GuidanceDocumentHistory> guidanceDocumentHistory;
 
     public void setDateAdded(Date dateAdded) {
+        if (dateAdded == null) {
+            throw new IllegalArgumentException("dateAdded cannot be null");
+        }
         this.DateAdded = dateAdded;
-        // calculate DueDateOverride as 8 business days from DateAdded
-        this.DueDateOverride = new Date(dateAdded.getTime() + TimeUnit.DAYS.toMillis(8));
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/New_York"));
+        cal.setTime(dateAdded);
+        int businessDaysToAdd = 8;
+        while (businessDaysToAdd > 0) {
+            cal.add(Calendar.DAY_OF_MONTH, 1);
+            if (cal.get(Calendar.DAY_OF_WEEK) != Calendar.SATURDAY && cal.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
+                // Add a check for holidays here
+                businessDaysToAdd--;
+            }
+        }
+        this.DueDateOverride = cal.getTime();
     }
 }
