@@ -63,7 +63,7 @@ public class Guidance {
     private int CompletedBy;
 
     @Column(nullable = true)
-    private int CompanyId = 10; // constant
+    private int CompanyId = 1; // constant
 
     @Column(length = 5)
     private String AdditionalGroup;

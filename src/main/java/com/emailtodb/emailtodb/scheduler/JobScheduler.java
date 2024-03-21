@@ -28,7 +28,7 @@ public class JobScheduler {
         this.dataMigrationService = dataMigrationService;
     }
 
-    @Scheduled(fixedDelay = 12 * 60 * 60 * 1000, initialDelay = 60 * 1000) // 60 seconds delay
+    @Scheduled(fixedDelay = 1 * 60 * 60 * 1000, initialDelay = 60 * 1000) // 60 seconds delay
     public void fetchEmailsRegularly() throws IOException {
         if (lock.tryLock()) {
             try {
