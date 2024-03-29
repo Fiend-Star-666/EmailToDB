@@ -21,6 +21,9 @@ public class MessagePartProcessingService {
     @Value("${email.body.regex.filter}")
     private String bodyRegexFilter;
 
+    @Value("'${email.body.eliminator.strings}'.split(',')")
+    private List<String> emailBodyEliminatorStrings;
+
     public List<String> getGoogleDriveFileIdsIfLink(MessagePart part) {
 
         // Get the body of the part
@@ -70,6 +73,8 @@ public class MessagePartProcessingService {
 
                 // Reconstruct the string starting from the determined line
                 briefBody = String.join("\n", Arrays.copyOfRange(lines, startIdx, lines.length));
+
+                briefBody = emailBodyEliminatorStrings.stream().reduce(briefBody, (tempBody, eliminator) -> tempBody.replaceAll(eliminator, ""));
 
                 return briefBody;
             }
