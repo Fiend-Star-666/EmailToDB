@@ -27,17 +27,17 @@ public class AzureFileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(AzureFileStorageService.class);
 
-    private final BlobServiceClient blobServiceClient;
-    private final BlobContainerClient containerClient;
+    //private final BlobServiceClient blobServiceClient;
+    //private final BlobContainerClient containerClient;
 
     @Value("${azure.storage.container-name}")
     private String containerName;
 
     public AzureFileStorageService(AzureStorageConfig azureStorageConfig, @Value("${azure.storage.container-name}") String containerName) {
-        this.blobServiceClient = azureStorageConfig.createBlobServiceClient();
+        //this.blobServiceClient = azureStorageConfig.createBlobServiceClient();
         logger.info("Azure Blob Storage Service initialized");
         logger.info("Container name: {}", containerName);
-        this.containerClient = blobServiceClient.getBlobContainerClient(containerName);
+        //this.containerClient = blobServiceClient.getBlobContainerClient(containerName);
     }
 
 
@@ -46,18 +46,18 @@ public class AzureFileStorageService {
         // Generate the blob name
         String blobName = generateBlobNameStaging(attachment);
 
-        BlobClient blobClient = containerClient.getBlobClient(blobName);
+        //BlobClient blobClient = containerClient.getBlobClient(blobName);
 
         try {
-            blobClient.upload(new ByteArrayInputStream(attachment.getFileContent()), attachment.getFileContent().length);
-            attachment.setFileUrl(blobClient.getBlobUrl());
-            attachment.setFileLocation(blobClient.getBlobName());
+//            blobClient.upload(new ByteArrayInputStream(attachment.getFileContent()), attachment.getFileContent().length);
+//            attachment.setFileUrl(blobClient.getBlobUrl());
+//            attachment.setFileLocation(blobClient.getBlobName());
             return attachment;
         } catch (BlobStorageException e) {
             if (e.getStatusCode() == 409 && e.getErrorCode().equals(BlobErrorCode.BLOB_ALREADY_EXISTS)) {
                 logger.warn("Blob already exists: {}", attachment.getFileContentHash());
-                attachment.setFileUrl(blobClient.getBlobUrl());
-                attachment.setFileLocation(blobClient.getBlobName());
+//                attachment.setFileUrl(blobClient.getBlobUrl());
+//                attachment.setFileLocation(blobClient.getBlobName());
                 return attachment;
             }
             logger.error("Error uploading file to Azure Blob Storage: {}", e.getMessage());
@@ -69,27 +69,27 @@ public class AzureFileStorageService {
 
         String sourceBlobLocation = attachment.getFileLocation();
 
-        BlobClient sourceBlobClient = containerClient.getBlobClient(sourceBlobLocation);
+//        BlobClient sourceBlobClient = containerClient.getBlobClient(sourceBlobLocation);
 
         String destinationBlobName = generateMigratedBlobName(attachment.getFileName(), guidanceDocumentHistory);
 
-        BlobClient destinationBlobClient = containerClient.getBlobClient(destinationBlobName);
+//        BlobClient destinationBlobClient = containerClient.getBlobClient(destinationBlobName);
 
-        if (sourceBlobClient.exists()) {
-            String sourceBlobUrl = sourceBlobClient.getBlobUrl();
-            try {
-                destinationBlobClient.copyFromUrl(sourceBlobUrl);
-            } catch (BlobStorageException e) {
-                if (e.getStatusCode() == 409 && e.getErrorCode().equals(BlobErrorCode.BLOB_ALREADY_EXISTS)) {
-                    logger.warn("Blob already exists in Migrated Location: {}", attachment.getFileContentHash());
-                }
-                logger.error("Error copying file to Azure Blob Storage: {}", e.getMessage());
-                throw e;
-            }
-            return destinationBlobClient.getBlobName();
-        } else {
-            logger.warn("Source blob does not exist: {}", sourceBlobLocation);
-        }
+//        if (sourceBlobClient.exists()) {
+//            String sourceBlobUrl = sourceBlobClient.getBlobUrl();
+//            try {
+//                destinationBlobClient.copyFromUrl(sourceBlobUrl);
+//            } catch (BlobStorageException e) {
+//                if (e.getStatusCode() == 409 && e.getErrorCode().equals(BlobErrorCode.BLOB_ALREADY_EXISTS)) {
+//                    logger.warn("Blob already exists in Migrated Location: {}", attachment.getFileContentHash());
+//                }
+//                logger.error("Error copying file to Azure Blob Storage: {}", e.getMessage());
+//                throw e;
+//            }
+//            return destinationBlobClient.getBlobName();
+//        } else {
+//            logger.warn("Source blob does not exist: {}", sourceBlobLocation);
+//        }
         return "";
     }
 
@@ -121,25 +121,25 @@ public class AzureFileStorageService {
 
     public void listAllContainers() {
         List<String> containerNames = new ArrayList<>();
-        for (BlobContainerItem blobContainerItem : blobServiceClient.listBlobContainers()) {
-            containerNames.add(blobContainerItem.getName());
-        }
+//        for (BlobContainerItem blobContainerItem : blobServiceClient.listBlobContainers()) {
+//            containerNames.add(blobContainerItem.getName());
+//        }
         logger.info("Containers: {}", containerNames);
     }
 
     public void deleteContainer() {
-        blobServiceClient.deleteBlobContainer(containerName);
+//        blobServiceClient.deleteBlobContainer(containerName);
         logger.info("Container deleted: {}", containerName);
     }
 
     public void createContainer() {
-        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
-        if (!containerClient.exists()) {
-            blobServiceClient.createBlobContainer(containerName);
-            logger.info("Container created: {}", containerName);
-        } else {
-            logger.info("Container already exists: {}", containerName);
-        }
+//        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+//        if (!containerClient.exists()) {
+//            blobServiceClient.createBlobContainer(containerName);
+//            logger.info("Container created: {}", containerName);
+//        } else {
+//            logger.info("Container already exists: {}", containerName);
+//        }
     }
 
 }

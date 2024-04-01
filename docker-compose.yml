@@ -23,8 +23,11 @@ services:
       - emailUser=${EMAIL_USER}
       - emailSummaryCC=${EMAIL_SUMMARY_CC}
       - emailSummaryTo=${EMAIL_SUMMARY_TO}
-      - azureStorageConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
-      - azureStorageContainerName=${AZURE_STORAGE_CONTAINER_NAME}
+      - azureStorageConnectionString=${azure-storage-connection-string}
+      - azureStorageContainerName=${azure-storage-container-name}
+      - serviceSecrets=${serviceSecrets}
+      - emailBodyRegexFilter=${emailBodyRegexFilter}
+      - emailBodyEliminatorStringsSet=${emailBodyEliminatorStringsSet}
     deploy:
       resources:
         limits:
@@ -33,6 +36,28 @@ services:
         reservations:
           cpus: '1.0'
           memory: 1G
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrongPassword1
+    volumes:
+      - mssql-data:/var/opt/mssql
+    networks:
+      - custom_network
+    command:
+      - /bin/bash
+      - -c
+      - |
+        /opt/mssql/bin/sqlservr &
+        sleep 30
+        /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P YourStrongPassword1 -Q "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'newDB') CREATE DATABASE newDB"
+        wait
+    ports:
+      - "1433:1433"
+
+volumes:
+  mssql-data:
 
 networks:
   custom_network:
