@@ -94,7 +94,6 @@ public class MessagePartProcessingService {
                 briefBody = String.join("\n", Arrays.copyOfRange(lines, startIdx, lines.length));
 
                 if (emailBodyEliminatorString != null) {
-                    logger.info("emailBodyFilterString"+ emailBodyEliminatorString);
                     String[] emailBodyEliminatorStrings = emailBodyEliminatorString.split("\\|,\\|");
                     // Join all lines into a single string
                     String allLines = String.join("", briefBody.split("\n"));
