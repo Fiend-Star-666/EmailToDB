@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class MessagePartProcessingService {
@@ -21,8 +22,26 @@ public class MessagePartProcessingService {
     @Value("${email.body.regex.filter}")
     private String bodyRegexFilter;
 
-    @Value("'${email.body.eliminator.strings}'.split(',')")
-    private List<String> emailBodyEliminatorStrings;
+    @Value("${email.body.eliminator.strings}")
+    private String emailBodyEliminatorString;
+
+    private static int getStartIndex(String[] lines) {
+        int startIdx = 0;
+
+        // Check for an empty line; this will be our new starting point
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].trim().isEmpty()) {
+                startIdx = i + 1; // Start from the line after the empty line
+                break;
+            }
+        }
+
+        // If the first line contains "Subject:", start from the second line
+        if (startIdx == 0 && lines.length > 0 && lines[0].contains("Subject:")) {
+            startIdx = 1;
+        }
+        return startIdx;
+    }
 
     public List<String> getGoogleDriveFileIdsIfLink(MessagePart part) {
 
@@ -74,7 +93,20 @@ public class MessagePartProcessingService {
                 // Reconstruct the string starting from the determined line
                 briefBody = String.join("\n", Arrays.copyOfRange(lines, startIdx, lines.length));
 
-                briefBody = emailBodyEliminatorStrings.stream().reduce(briefBody, (tempBody, eliminator) -> tempBody.replaceAll(eliminator, ""));
+                if (emailBodyEliminatorString != null) {
+                    logger.info("emailBodyFilterString"+ emailBodyEliminatorString);
+                    String[] emailBodyEliminatorStrings = emailBodyEliminatorString.split("\\|,\\|");
+                    // Join all lines into a single string
+                    String allLines = String.join("", briefBody.split("\n"));
+
+                    // For each string eliminator, check if it exists in the joined string
+                    for (String eliminator : emailBodyEliminatorStrings) {
+                        if (allLines.contains(eliminator)) {
+                            // If the eliminator is found, remove it from the line
+                            briefBody = removeEliminatorFromLines(briefBody, eliminator);
+                        }
+                    }
+                }
 
                 return briefBody;
             }
@@ -88,24 +120,6 @@ public class MessagePartProcessingService {
             }
         }
         return null;
-    }
-
-    private static int getStartIndex(String[] lines) {
-        int startIdx = 0;
-
-        // Check for an empty line; this will be our new starting point
-        for (int i = 0; i < lines.length; i++) {
-            if (lines[i].trim().isEmpty()) {
-                startIdx = i + 1; // Start from the line after the empty line
-                break;
-            }
-        }
-
-        // If the first line contains "Subject:", start from the second line
-        if (startIdx == 0 && lines.length > 0 && lines[0].contains("Subject:")) {
-            startIdx = 1;
-        }
-        return startIdx;
     }
 
     public String getBody(MessagePart part) {
@@ -123,4 +137,9 @@ public class MessagePartProcessingService {
         return null;
     }
 
+    private String removeEliminatorFromLines(String briefBody, String eliminator) {
+        return Arrays.stream(briefBody.split("\n"))
+                .map(line -> line.contains(eliminator) ? line.replace(eliminator, "") : line)
+                .collect(Collectors.joining("\n"));
+    }
 }
