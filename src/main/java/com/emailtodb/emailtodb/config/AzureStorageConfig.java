@@ -15,9 +15,6 @@ public class AzureStorageConfig {
 
         return new BlobServiceClientBuilder()
                 .connectionString(connectionString)
-//                .addPolicy(new HttpLoggingPolicy(
-//                        new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS)
-//                ))
                 .addPolicy((context, next) -> {
                     context.setData("Azure-Storage-Log-String-To-Sign", true);
                     return next.process();
