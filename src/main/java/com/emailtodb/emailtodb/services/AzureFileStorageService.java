@@ -33,10 +33,9 @@ public class AzureFileStorageService {
     @Value("${azure.storage.container-name}")
     private String containerName;
 
-    public AzureFileStorageService(AzureStorageConfig azureStorageConfig, @Value("${azure.storage.container-name}") String containerName) {
+    public AzureFileStorageService(AzureStorageConfig azureStorageConfig,
+                                   @Value("${azure.storage.container-name}") String containerName) {
         this.blobServiceClient = azureStorageConfig.createBlobServiceClient();
-        logger.info("Azure Blob Storage Service initialized");
-        logger.info("Container name: {}", containerName);
         this.containerClient = blobServiceClient.getBlobContainerClient(containerName);
     }
 
